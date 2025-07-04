@@ -1,0 +1,25 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "alembic",
+]
+
+select = ["E", "W", "F", "I"]
+ignore = []
+
+[tool.ruff.lint.isort] # Corrected: This is a sub-table
+known-first-party = ["app"]
+combine-as-imports = true
+
+[tool.ruff.format]
+docstring-code-format = true
+skip-magic-trailing-comma = false
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

@@ -5,3 +5,5 @@ python-dotenv==1.0.1
 pydantic-settings==2.3.4
 alembic==1.13.1
 uvicorn==0.30.1
+black==24.4.2 # Code formatter
+ruff==0.5.2 # Linter and formatter
