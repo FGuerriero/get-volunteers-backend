@@ -17,3 +17,7 @@ venv/
 
 # Logs
 *.log
+
+# Alembic migration files
+alembic/versions/*.pyc
+alembic/versions/*.pyc.bak

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, Enum
-from app.database import Base
+from app.db.database import Base
 
 class Volunteer(Base):
     __tablename__ = "volunteers" 

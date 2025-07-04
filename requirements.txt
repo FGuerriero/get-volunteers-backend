@@ -1,8 +1,7 @@
 fastapi==0.111.0
-pydantic==2.7.1
-pydantic-settings==2.3.4
 sqlalchemy==2.0.30
-uvicorn==0.30.1
-mysqlclient==2.2.4
+mysql-connector-python==8.4.0
 python-dotenv==1.0.1
+pydantic-settings==2.3.4
 alembic==1.13.1
+uvicorn==0.30.1

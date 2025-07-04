@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Literal
 
-# --- Volunteer Schemas ---
 class VolunteerBase(BaseModel):
     name: str
     email: EmailStr
@@ -21,7 +20,6 @@ class Volunteer(VolunteerBase):
     class Config:
         from_attributes = True
 
-# --- Need Schemas ---
 class NeedBase(BaseModel):
     title: str
     description: str
