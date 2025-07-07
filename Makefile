@@ -38,3 +38,16 @@ venv:
 	@echo    For Windows Command Prompt/PowerShell, run: '.\.venv\Scripts\Activate.ps1' or '.\.venv\Scripts\activate.bat'
 	@echo    For Git Bash/WSL/Linux/macOS, run: source './.venv/bin/activate'
 	@echo    This 'make venv' command itself cannot activate the environment for the current shell session.
+
+# Alembic Migration Commands
+# Create a new migration script (e.g., make migrate-new message="Add users table")
+migrate-new:
+	alembic revision --autogenerate -m "$(message)"
+
+# Apply all pending migrations to the database
+migrate-up:
+	alembic upgrade head
+
+# Revert the last migration (use with caution!)
+migrate-down:
+	alembic downgrade -1
