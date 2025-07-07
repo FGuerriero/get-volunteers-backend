@@ -1,12 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, status
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 
 # Import the new volunteers router
-from app.api.v1.endpoints import volunteers
-from app.api.v1.endpoints import needs
+from app.api.v1.endpoints import needs, volunteers
 
 
 @asynccontextmanager

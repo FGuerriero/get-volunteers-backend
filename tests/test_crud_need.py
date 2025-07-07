@@ -1,5 +1,7 @@
 import pytest
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from unittest.mock import MagicMock
 
 from app.crud import crud_need
 from app.schemas import schemas
@@ -24,6 +26,29 @@ def test_create_need(db_session: Session):
     assert need.title == "Food Delivery"
     assert need.num_volunteers_needed == 5
     assert need.format == "in-person"
+
+def test_create_need_integrity_error(mocker, db_session: Session):
+    """
+    Tests the IntegrityError handling in create_need.
+    Mocks db.add to raise an IntegrityError.
+    """
+    need_data = schemas.NeedCreate(
+        title="Duplicate Need",
+        description="This need will cause an integrity error",
+        num_volunteers_needed=1,
+        format="virtual",
+        contact_name="Test Contact",
+        contact_email="test@example.com",
+    )
+
+    # Mock the db.add method to raise IntegrityError
+    mocker.patch.object(db_session, 'add', side_effect=IntegrityError("test", {}, "test"))
+    mocker.patch.object(db_session, 'rollback') # Ensure rollback is called
+
+    result = crud_need.create_need(db_session, need_data)
+
+    assert result is None
+    db_session.rollback.assert_called_once()
 
 def test_get_need(db_session: Session):
     need_data = schemas.NeedCreate(

@@ -1,5 +1,7 @@
+from typing import Literal, Optional
+
 from pydantic import BaseModel, EmailStr
-from typing import Optional, Literal
+
 
 class VolunteerBase(BaseModel):
     name: str
@@ -11,14 +13,17 @@ class VolunteerBase(BaseModel):
     location: Optional[str] = None
     availability: Optional[str] = None
 
+
 class VolunteerCreate(VolunteerBase):
     pass
+
 
 class Volunteer(VolunteerBase):
     id: int
 
     class Config:
         from_attributes = True
+
 
 class NeedBase(BaseModel):
     title: str
@@ -32,8 +37,10 @@ class NeedBase(BaseModel):
     contact_email: EmailStr
     contact_phone: Optional[str] = None
 
+
 class NeedCreate(NeedBase):
     pass
+
 
 class Need(NeedBase):
     id: int

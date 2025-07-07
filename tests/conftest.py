@@ -1,27 +1,34 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import  Session 
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.db.database import Base, get_db
+
+# Temporarily set the database URL to an in-memory SQLite for testing
+# This must happen *before* importing app.app if app.app initializes
+# database components based on settings.
+settings.database_url = "sqlite:///:memory:"
+
+# Re-import or re-create engine and SessionLocal based on the new settings.database_url
+# This ensures that the app's database connection uses the in-memory SQLite.
+# We need to do this explicitly because app.db.database.py might have already
+# initialized its engine based on the original settings.
+from app.db.database import engine, SessionLocal # Re-import after setting test DB URL
+
+# Import the main FastAPI app
 from app.app import app
-from app.db.models import Volunteer, Need
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(name="db_session")
 def db_session_fixture():
     """
-    Creates a new database session for each test, with all tables created.
+    Creates a new database session for the entire test session, with all tables created.
     Rolls back the session after the test to ensure a clean state.
     """
+    # Create the tables in the test database
     Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+    db = SessionLocal() # Use the SessionLocal from app.db.database
     try:
         yield db
     finally:
