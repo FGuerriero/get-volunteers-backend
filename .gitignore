@@ -26,5 +26,5 @@ alembic/versions/*.pyc
 alembic/versions/*.pyc.bak
 
 # Cov Tests Report
-# htmlcov/
-# .coverage
+htmlcov/
+.coverage
