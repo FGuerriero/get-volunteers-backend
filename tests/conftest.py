@@ -22,6 +22,8 @@ from app.db.database import engine, SessionLocal # Re-import after setting test 
 
 # Import the main FastAPI app
 from app.app import app
+from app.db.models import Volunteer
+from app.dependencies import get_password_hash
 
 
 @pytest.fixture(name="db_session")
@@ -56,3 +58,40 @@ def client_fixture(db_session: Session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+# Helper fixture to create and authenticate a test volunteer
+@pytest.fixture(name="authenticated_volunteer_and_token")
+def authenticated_volunteer_and_token_fixture(client: TestClient, db_session: Session):
+    email = "auth_test_volunteer@example.com"
+    password = "testpassword"
+
+    # Register the volunteer
+    register_response = client.post(
+        "/api/v1/register",
+        json={
+            "name": "Auth Test Volunteer",
+            "email": email,
+            "password": password,
+            "phone": "123-456-7890",
+            "about_me": "Test user for auth",
+            "skills": "Testing",
+            "volunteer_interests": "Auth",
+            "location": "Test City",
+            "availability": "Anytime"
+        }
+    )
+    assert register_response.status_code == 201
+    
+    # Login to get a token
+    token_response = client.post(
+        "/api/v1/token",
+        data={"username": email, "password": password}
+    )
+    assert token_response.status_code == 200
+    token = token_response.json()["access_token"]
+
+    # Retrieve the volunteer object from the database
+    test_volunteer = db_session.query(Volunteer).filter(Volunteer.email == email).first()
+    assert test_volunteer is not None
+
+    return test_volunteer, token

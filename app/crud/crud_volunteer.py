@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db import models
 from app.schemas import schemas
+from app.dependencies import get_password_hash
 
 
 def get_volunteer(db: Session, volunteer_id: int):
@@ -24,15 +25,18 @@ def get_volunteers(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_volunteer(db: Session, volunteer: schemas.VolunteerCreate):
+    hashed_password = get_password_hash(volunteer.password)
     db_volunteer = models.Volunteer(
         name=volunteer.name,
         email=volunteer.email,
+        password=hashed_password,
         phone=volunteer.phone,
         about_me=volunteer.about_me,
         skills=volunteer.skills,
         volunteer_interests=volunteer.volunteer_interests,
         location=volunteer.location,
         availability=volunteer.availability,
+        is_active=1
     )
     try:
         db.add(db_volunteer)
@@ -44,15 +48,18 @@ def create_volunteer(db: Session, volunteer: schemas.VolunteerCreate):
         return None  # Indicate that creation failed, likely due to duplicate email
 
 
-def update_volunteer(
-    db: Session, volunteer_id: int, volunteer: schemas.VolunteerCreate
-):
-    db_volunteer = (
-        db.query(models.Volunteer).filter(models.Volunteer.id == volunteer_id).first()
-    )
+def update_volunteer(db: Session, volunteer_id: int, volunteer: schemas.VolunteerCreate):
+    db_volunteer = db.query(models.Volunteer).filter(
+        models.Volunteer.id == volunteer_id
+    ).first()
     if db_volunteer:
-        for key, value in volunteer.model_dump(exclude_unset=True).items():
+        update_data = volunteer.model_dump(exclude_unset=True, exclude={'password'})
+        for key, value in update_data.items():
             setattr(db_volunteer, key, value)
+        
+        if volunteer.password:
+            db_volunteer.password = get_password_hash(volunteer.password)
+
         db.commit()
         db.refresh(db_volunteer)
         return db_volunteer
@@ -60,9 +67,9 @@ def update_volunteer(
 
 
 def delete_volunteer(db: Session, volunteer_id: int):
-    db_volunteer = (
-        db.query(models.Volunteer).filter(models.Volunteer.id == volunteer_id).first()
-    )
+    db_volunteer = db.query(models.Volunteer).filter(
+        models.Volunteer.id == volunteer_id
+    ).first()
     if db_volunteer:
         db.delete(db_volunteer)
         db.commit()

@@ -28,3 +28,4 @@ app = FastAPI(
 
 app.include_router(volunteers.router, prefix="/api/v1")
 app.include_router(needs.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")

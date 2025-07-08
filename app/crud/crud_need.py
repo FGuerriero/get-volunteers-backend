@@ -17,7 +17,7 @@ def get_needs(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Need).offset(skip).limit(limit).all()
 
 
-def create_need(db: Session, need: schemas.NeedCreate):
+def create_need(db: Session, need: schemas.NeedCreate, owner_id: int):
     db_need = models.Need(
         title=need.title,
         description=need.description,
@@ -29,6 +29,7 @@ def create_need(db: Session, need: schemas.NeedCreate):
         contact_name=need.contact_name,
         contact_email=need.contact_email,
         contact_phone=need.contact_phone,
+        owner_id=owner_id 
     )
     try:
         db.add(db_need)
@@ -42,8 +43,12 @@ def create_need(db: Session, need: schemas.NeedCreate):
         return None
 
 
-def update_need(db: Session, need_id: int, need: schemas.NeedCreate):
-    db_need = db.query(models.Need).filter(models.Need.id == need_id).first()
+def update_need(db: Session, need_id: int, need: schemas.NeedCreate, owner_id: int):
+    # Ensure the need belongs to the authenticated volunteer
+    db_need = db.query(models.Need).filter(
+        models.Need.id == need_id,
+        models.Need.owner_id == owner_id
+    ).first()
     if db_need:
         for key, value in need.model_dump(exclude_unset=True).items():
             setattr(db_need, key, value)

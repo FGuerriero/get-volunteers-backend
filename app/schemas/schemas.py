@@ -6,6 +6,12 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
 
 class VolunteerBase(BaseModel):
     name: str
@@ -19,11 +25,12 @@ class VolunteerBase(BaseModel):
 
 
 class VolunteerCreate(VolunteerBase):
-    pass
+    password: str
 
 
 class Volunteer(VolunteerBase):
     id: int
+    is_active: bool
 
     class Config:
         from_attributes = True
@@ -48,6 +55,8 @@ class NeedCreate(NeedBase):
 
 class Need(NeedBase):
     id: int
+    owner_id: int
+    owner: Volunteer
 
     class Config:
         from_attributes = True
