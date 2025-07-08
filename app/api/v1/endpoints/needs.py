@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status

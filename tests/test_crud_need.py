@@ -1,11 +1,12 @@
-import pytest
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from unittest.mock import MagicMock
 
 from app.crud import crud_need
 from app.schemas import schemas
-from app.db import models # Needed for model instances in tests
 
 def test_create_need(db_session: Session):
     need_data = schemas.NeedCreate(

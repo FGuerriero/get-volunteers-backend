@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 import os
 import sys
 from logging.config import fileConfig
@@ -18,25 +22,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from app.db.database import Base
 from app.db import models  # Import your models module so Alembic discovers them
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata  # Set target_metadata to your Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 # Override sqlalchemy.url with the one from your settings
 config.set_main_option("sqlalchemy.url", settings.database_url)

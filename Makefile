@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 .PHONY: install test coverage format lint run venv
 
 # Python venv activation for Windows environment

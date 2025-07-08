@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 """create initial tables
 
 Revision ID: c99360b2d9e7

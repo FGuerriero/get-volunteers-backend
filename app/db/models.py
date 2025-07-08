@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 from sqlalchemy import Column, Enum, Integer, String, Text
 
 from app.db.database import Base

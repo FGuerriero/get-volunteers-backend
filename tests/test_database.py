@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 import pytest
 from unittest.mock import MagicMock
 from app.db.database import get_db, SessionLocal # Import SessionLocal

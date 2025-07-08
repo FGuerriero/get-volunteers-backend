@@ -1,9 +1,11 @@
-import pytest
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# SPDX-License-Identifier: MIT
+#
+
 from sqlalchemy.orm import Session
 
 from app.crud import crud_volunteer
 from app.schemas import schemas
-from app.db import models # Needed for model instances in tests
 
 def test_create_volunteer(db_session: Session):
     volunteer_data = schemas.VolunteerCreate(
