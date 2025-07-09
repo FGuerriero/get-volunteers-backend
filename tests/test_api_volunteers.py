@@ -6,12 +6,17 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from unittest.mock import MagicMock
+from app.crud import crud_volunteer, crud_need
 from app.dependencies import get_current_active_volunteer 
 from app.db.models import Volunteer
+from app.schemas import schemas
 
 
 def test_create_volunteer_authenticated(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    test_volunteer, token = authenticated_volunteer_and_token
+    test_volunteer_email, token = authenticated_volunteer_and_token
+    
+    test_volunteer = crud_volunteer.get_volunteer_by_email(db_session, test_volunteer_email)
+    assert test_volunteer is not None
 
     # Mock get_current_active_volunteer to return our test_volunteer
     mocker.patch('app.dependencies.get_current_active_volunteer', return_value=test_volunteer)
@@ -76,7 +81,10 @@ def test_read_volunteer_public(client: TestClient, db_session: Session, authenti
     assert response.json()["detail"] == "Volunteer not found"
 
 def test_update_volunteer_authenticated_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
 
     mocker.patch('app.dependencies.get_current_active_volunteer', return_value=owner_volunteer)
 
@@ -94,13 +102,16 @@ def test_update_volunteer_authenticated_owner(client: TestClient, db_session: Se
     assert data["id"] == owner_volunteer.id
 
     login_response = client.post(
-        "/api/v1/token",
+        "/api/v1/login",
         data={"username": owner_volunteer.email, "password": "newsecurepassword"}
     )
     assert login_response.status_code == 200
 
 def test_update_volunteer_authenticated_not_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
     
     not_owner_email = "not_owner_volunteer@example.com"
     not_owner_password = "notownerpassword"
@@ -112,7 +123,7 @@ def test_update_volunteer_authenticated_not_owner(client: TestClient, db_session
     not_owner_volunteer = crud_volunteer.create_volunteer(db_session, not_owner_create_data)
     
     not_owner_token_response = client.post(
-        "/api/v1/token",
+        "/api/v1/login",
         data={"username": not_owner_email, "password": not_owner_password}
     )
     not_owner_token = not_owner_token_response.json()["access_token"]
@@ -123,20 +134,27 @@ def test_update_volunteer_authenticated_not_owner(client: TestClient, db_session
         "name": "Attempted Update",
         "email": owner_volunteer.email,
         "phone": "123-123-1234",
+        "password": "some_password_to_pass_validation"
     }
     response = client.put(f"/api/v1/volunteers/{owner_volunteer.id}", json=update_data, headers={"Authorization": f"Bearer {not_owner_token}"})
     assert response.status_code == 403 
     assert "You can only update your own volunteer profile." in response.json()["detail"]
 
 def test_update_volunteer_unauthenticated(client: TestClient, db_session: Session, authenticated_volunteer_and_token):
-    owner_volunteer, _ = authenticated_volunteer_and_token 
+    owner_volunteer_email, _ = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
 
     update_data = {"name": "Should Not Update", "email": owner_volunteer.email}
     response = client.put(f"/api/v1/volunteers/{owner_volunteer.id}", json=update_data)
     assert response.status_code == 401 
 
 def test_delete_volunteer_authenticated_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
 
     mocker.patch('app.dependencies.get_current_active_volunteer', return_value=owner_volunteer)
 
@@ -147,7 +165,10 @@ def test_delete_volunteer_authenticated_owner(client: TestClient, db_session: Se
     assert response.status_code == 404
 
 def test_delete_volunteer_authenticated_not_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, _ = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
     
     not_owner_email = "not_owner_delete_volunteer@example.com"
     not_owner_password = "notownerdeletepassword"
@@ -159,7 +180,7 @@ def test_delete_volunteer_authenticated_not_owner(client: TestClient, db_session
     not_owner_volunteer = crud_volunteer.create_volunteer(db_session, not_owner_create_data)
     
     not_owner_token_response = client.post(
-        "/api/v1/token",
+        "/api/v1/login",
         data={"username": not_owner_email, "password": not_owner_password}
     )
     not_owner_token = not_owner_token_response.json()["access_token"]
@@ -171,7 +192,10 @@ def test_delete_volunteer_authenticated_not_owner(client: TestClient, db_session
     assert "You can only delete your own volunteer profile." in response.json()["detail"]
 
 def test_delete_volunteer_unauthenticated(client: TestClient, db_session: Session, authenticated_volunteer_and_token):
-    owner_volunteer, _ = authenticated_volunteer_and_token 
+    owner_volunteer_email, _ = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
 
     response = client.delete(f"/api/v1/volunteers/{owner_volunteer.id}")
     assert response.status_code == 401

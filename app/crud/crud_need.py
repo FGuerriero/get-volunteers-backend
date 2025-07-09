@@ -58,8 +58,11 @@ def update_need(db: Session, need_id: int, need: schemas.NeedCreate, owner_id: i
     return None
 
 
-def delete_need(db: Session, need_id: int):
-    db_need = db.query(models.Need).filter(models.Need.id == need_id).first()
+def delete_need(db: Session, need_id: int, owner_id: int):
+    db_need = db.query(models.Need).filter(
+        models.Need.id == need_id,
+        models.Need.owner_id == owner_id
+    ).first()
     if db_need:
         db.delete(db_need)
         db.commit()

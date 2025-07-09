@@ -23,7 +23,6 @@ from app.db.database import engine, SessionLocal # Re-import after setting test 
 # Import the main FastAPI app
 from app.app import app
 from app.db.models import Volunteer
-from app.dependencies import get_password_hash
 
 
 @pytest.fixture(name="db_session")
@@ -49,10 +48,7 @@ def client_fixture(db_session: Session):
     to use the test database session.
     """
     def override_get_db():
-        try:
-            yield db_session
-        finally:
-            db_session.close()
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
@@ -84,14 +80,10 @@ def authenticated_volunteer_and_token_fixture(client: TestClient, db_session: Se
     
     # Login to get a token
     token_response = client.post(
-        "/api/v1/token",
+        "/api/v1/login",
         data={"username": email, "password": password}
     )
     assert token_response.status_code == 200
     token = token_response.json()["access_token"]
 
-    # Retrieve the volunteer object from the database
-    test_volunteer = db_session.query(Volunteer).filter(Volunteer.email == email).first()
-    assert test_volunteer is not None
-
-    return test_volunteer, token
+    return email, token

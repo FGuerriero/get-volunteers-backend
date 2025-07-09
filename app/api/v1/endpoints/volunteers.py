@@ -2,15 +2,16 @@
 # SPDX-License-Identifier: MIT
 #
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
 
-from app.schemas import schemas
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from app.crud import crud_volunteer
 from app.db.database import get_db
+from app.db.models import Volunteer
 from app.dependencies import get_current_active_volunteer
-from app.db.models import Volunteer 
+from app.schemas import schemas
 
 router = APIRouter(
     prefix="/volunteers",

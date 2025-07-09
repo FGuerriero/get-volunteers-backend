@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 from app.crud import crud_need
 from app.schemas import schemas
 from app.db import models
-from app.dependencies import get_password_hash 
+from app.utils.security import get_password_hash 
 
 def create_dummy_volunteer(db_session: Session, email: str = "dummy_owner@example.com"):
     volunteer = models.Volunteer(

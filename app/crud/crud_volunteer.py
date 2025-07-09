@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db import models
 from app.schemas import schemas
-from app.dependencies import get_password_hash
+from app.utils.security import get_password_hash
 
 
 def get_volunteer(db: Session, volunteer_id: int):

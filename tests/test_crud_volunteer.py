@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.crud import crud_volunteer
 from app.schemas import schemas
 from app.db import models
-from app.dependencies import get_password_hash
+from app.utils.security import get_password_hash
 
 def test_create_volunteer(db_session: Session):
     volunteer_data = schemas.VolunteerCreate(

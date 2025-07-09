@@ -8,10 +8,15 @@ from sqlalchemy.orm import Session
 from unittest.mock import MagicMock
 from app.dependencies import get_current_active_volunteer 
 from app.db.models import Volunteer 
-from app.crud import crud_volunteer 
+from app.crud import crud_volunteer, crud_need
+from app.schemas import schemas
+from app.utils.security import get_password_hash
 
 def test_create_need_authenticated(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    test_volunteer, token = authenticated_volunteer_and_token
+    test_volunteer_email, token = authenticated_volunteer_and_token
+
+    test_volunteer = crud_volunteer.get_volunteer_by_email(db_session, test_volunteer_email)
+    assert test_volunteer is not None
 
     mocker.patch('app.dependencies.get_current_active_volunteer', return_value=test_volunteer)
 
@@ -48,7 +53,7 @@ def test_create_need_unauthenticated(client: TestClient):
     assert response.status_code == 401
 
 def test_read_needs_public(client: TestClient, db_session: Session):
-    volunteer = Volunteer(email="public_need_owner@example.com", name="Public Owner", hashed_password="hashedpassword", is_active=1)
+    volunteer = Volunteer(email="public_need_owner@example.com", name="Public Owner", password=get_password_hash("hashedpassword"), is_active=1)
     db_session.add(volunteer)
     db_session.commit()
     db_session.refresh(volunteer)
@@ -64,7 +69,7 @@ def test_read_needs_public(client: TestClient, db_session: Session):
     assert any(n["title"] == "Need Two Public" for n in data)
 
 def test_read_need_public(client: TestClient, db_session: Session):
-    volunteer = Volunteer(email="single_need_owner@example.com", name="Single Owner", hashed_password="hashedpassword", is_active=1)
+    volunteer = Volunteer(email="single_need_owner@example.com", name="Single Owner", password=get_password_hash("hashedpassword"), is_active=1)
     db_session.add(volunteer)
     db_session.commit()
     db_session.refresh(volunteer)
@@ -83,7 +88,10 @@ def test_read_need_public(client: TestClient, db_session: Session):
     assert response.json()["detail"] == "Need not found"
 
 def test_update_need_authenticated_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
 
     need_create_response = client.post(
         "/api/v1/needs/",
@@ -114,7 +122,10 @@ def test_update_need_authenticated_owner(client: TestClient, db_session: Session
     assert data["owner_id"] == owner_volunteer.id
 
 def test_update_need_authenticated_not_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
     
     not_owner_email = "not_owner_need_volunteer@example.com"
     not_owner_password = "notownerneedpassword"
@@ -126,7 +137,7 @@ def test_update_need_authenticated_not_owner(client: TestClient, db_session: Ses
     not_owner_volunteer = crud_volunteer.create_volunteer(db_session, not_owner_create_data)
     
     not_owner_token_response = client.post(
-        "/api/v1/token",
+        "/api/v1/login",
         data={"username": not_owner_email, "password": not_owner_password}
     )
     not_owner_token = not_owner_token_response.json()["access_token"]
@@ -154,7 +165,11 @@ def test_update_need_authenticated_not_owner(client: TestClient, db_session: Ses
     assert "not found or you don't have permission" in response.json()["detail"]
 
 def test_update_need_unauthenticated(client: TestClient, db_session: Session, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
+
     need_create_response = client.post(
         "/api/v1/needs/",
         headers={"Authorization": f"Bearer {owner_token}"},
@@ -168,7 +183,10 @@ def test_update_need_unauthenticated(client: TestClient, db_session: Session, au
     assert response.status_code == 401 
 
 def test_delete_need_authenticated_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    assert owner_volunteer is not None
 
     need_create_response = client.post(
         "/api/v1/needs/",
@@ -187,7 +205,7 @@ def test_delete_need_authenticated_owner(client: TestClient, db_session: Session
     assert response.status_code == 404
 
 def test_delete_need_authenticated_not_owner(client: TestClient, db_session: Session, mocker, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    _, owner_token = authenticated_volunteer_and_token
     
     not_owner_email = "not_owner_delete_need_volunteer@example.com"
     not_owner_password = "notownerdeleteneedpassword"
@@ -199,7 +217,7 @@ def test_delete_need_authenticated_not_owner(client: TestClient, db_session: Ses
     not_owner_volunteer = crud_volunteer.create_volunteer(db_session, not_owner_create_data)
     
     not_owner_token_response = client.post(
-        "/api/v1/token",
+        "/api/v1/login",
         data={"username": not_owner_email, "password": not_owner_password}
     )
     not_owner_token = not_owner_token_response.json()["access_token"]
@@ -219,7 +237,7 @@ def test_delete_need_authenticated_not_owner(client: TestClient, db_session: Ses
     assert "not found or you don't have permission" in response.json()["detail"]
 
 def test_delete_need_unauthenticated(client: TestClient, db_session: Session, authenticated_volunteer_and_token):
-    owner_volunteer, owner_token = authenticated_volunteer_and_token
+    _, owner_token = authenticated_volunteer_and_token
     need_create_response = client.post(
         "/api/v1/needs/",
         headers={"Authorization": f"Bearer {owner_token}"},

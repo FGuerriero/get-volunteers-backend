@@ -10,29 +10,30 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.schemas import schemas
+from app.crud import crud_volunteer
 from app.db.database import get_db
-from app.crud import crud_volunteer 
+from app.db.models import Volunteer
+from app.schemas import schemas
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/token")
+def verify_token(token: str, credentials_exception: HTTPException) -> schemas.TokenData:
+    """
+    Verifies a JWT token and returns the token data.
+    """
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(email=email)
+    except JWTError:
+        raise credentials_exception
+    return token_data
 
-def verify_password(plain_password: str, password: str) -> bool:
-    """
-    Verifies a plain password against a hashed password.
-    """
-    return pwd_context.verify(plain_password, password)
-
-def get_password_hash(password: str) -> str:
-    """
-    Hashes a plain password.
-    """
-    return pwd_context.hash(password)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
@@ -47,7 +48,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
 
-def get_current_volunteer(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.Volunteer:
+def get_current_volunteer(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> Volunteer:
     """
     FastAPI dependency to get the current authenticated volunteer.
     """
@@ -62,7 +65,7 @@ def get_current_volunteer(token: str = Depends(oauth2_scheme), db: Session = Dep
         raise credentials_exception
     return volunteer
 
-def get_current_active_volunteer(current_volunteer: models.Volunteer = Depends(get_current_volunteer)) -> models.Volunteer:
+def get_current_active_volunteer(current_volunteer: Volunteer = Depends(get_current_volunteer)) -> Volunteer:
     """
     FastAPI dependency to get the current authenticated and active volunteer.
     """

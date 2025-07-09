@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: MIT
 #
 
-from sqlalchemy import Column, Integer, String, Text, Enum, ForeignKey
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+
 from app.db.database import Base
+
 
 class Volunteer(Base):
     __tablename__ = "volunteers"
@@ -37,4 +39,4 @@ class Need(Base):
     contact_email = Column(String(255), nullable=False)
     contact_phone = Column(String(50), nullable=True)
     owner_id = Column(Integer, ForeignKey("volunteers.id"), nullable=False)
-    owner = relationship("Volunteer", back_populates="created_needs")
+    owner = relationship("Volunteer", back_populates=None)

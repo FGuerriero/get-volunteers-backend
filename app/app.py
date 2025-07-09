@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 # Import the new volunteers router
-from app.api.v1.endpoints import needs, volunteers
+from app.api.v1.endpoints import auth, needs, volunteers
 
 
 @asynccontextmanager
