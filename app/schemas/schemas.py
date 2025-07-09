@@ -4,7 +4,8 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
+
 
 class Token(BaseModel):
     access_token: str
@@ -32,8 +33,7 @@ class Volunteer(VolunteerBase):
     id: int
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NeedBase(BaseModel):
@@ -58,5 +58,4 @@ class Need(NeedBase):
     owner_id: int
     owner: Volunteer
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

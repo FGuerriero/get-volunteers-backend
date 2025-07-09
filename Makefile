@@ -39,7 +39,7 @@ run:
 # or use 'source ./.venv/Scripts/activate' if you have Git Bash/WSL.
 venv:
 	@echo   Activating virtual environment...
-	@echo    For Windows Command Prompt/PowerShell, run: '.\.venv\Scripts\Activate.ps1' or '.\.venv\Scripts\activate.bat'
+	@echo    For Windows Command Prompt/PowerShell, run: '.\.venv\Scripts\Activate.ps1' or '.\.venv\Scripts\activate'
 	@echo    For Git Bash/WSL/Linux/macOS, run: source './.venv/bin/activate'
 	@echo    This 'make venv' command itself cannot activate the environment for the current shell session.
 
