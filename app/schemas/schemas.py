@@ -4,7 +4,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class Token(BaseModel):

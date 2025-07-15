@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    google_api_key: str = ""
+    gemini_model_name: str = "gemini-2.0-flash"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

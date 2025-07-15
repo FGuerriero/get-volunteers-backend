@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=schemas.Need, status_code=status.HTTP_201_CREATED)
-def create_need(
+async def create_need(
     need: schemas.NeedCreate,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
     db: Session = Depends(get_db)
@@ -28,7 +28,7 @@ def create_need(
     Creates a new need associated with the authenticated volunteer.
     """
     # Pass the owner_id (current_volunteer.id) to the CRUD function
-    return crud_need.create_need(db=db, need=need, owner_id=current_volunteer.id)
+    return await crud_need.create_need(db=db, need=need, owner_id=current_volunteer.id)
 
 @router.get("/", response_model=List[schemas.Need])
 def read_needs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -52,7 +52,7 @@ def read_need(need_id: int, db: Session = Depends(get_db)):
     return db_need
 
 @router.put("/{need_id}", response_model=schemas.Need)
-def update_need(
+async def update_need(
     need_id: int,
     need: schemas.NeedCreate,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
@@ -61,8 +61,7 @@ def update_need(
     """
     Updates an existing need. Only the owner can update their need.
     """
-    # Pass owner_id to ensure only the owner can update
-    db_need = crud_need.update_need(db, need_id, need, current_volunteer.id)
+    db_need = await crud_need.update_need(db, need_id, need, current_volunteer.id)
     if db_need is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -79,7 +78,6 @@ def delete_need(
     """
     Deletes a need. Only the owner can delete their need.
     """
-    # Pass owner_id to ensure only the owner can delete
     success = crud_need.delete_need(db, need_id, current_volunteer.id)
     if not success:
         raise HTTPException(

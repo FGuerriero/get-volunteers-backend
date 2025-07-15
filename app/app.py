@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-# Import the new volunteers router
 from app.api.v1.endpoints import auth, needs, volunteers
 
 
@@ -29,3 +28,5 @@ app = FastAPI(
 app.include_router(volunteers.router, prefix="/api/v1")
 app.include_router(needs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+
+

@@ -5,7 +5,9 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.crud import crud_match
 from app.db import models
+from app.events import match_handlers
 from app.schemas import schemas
 
 
@@ -17,7 +19,7 @@ def get_needs(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Need).offset(skip).limit(limit).all()
 
 
-def create_need(db: Session, need: schemas.NeedCreate, owner_id: int):
+async def create_need(db: Session, need: schemas.NeedCreate, owner_id: int):
     db_need = models.Need(
         title=need.title,
         description=need.description,
@@ -35,16 +37,16 @@ def create_need(db: Session, need: schemas.NeedCreate, owner_id: int):
         db.add(db_need)
         db.commit()
         db.refresh(db_need)
+
+        await match_handlers.trigger_need_matching(db, db_need)
+
         return db_need
     except IntegrityError:
         db.rollback()
-        # Indicates creation failed, though for Needs, email uniqueness
-        # isn't enforced by default
         return None
 
 
-def update_need(db: Session, need_id: int, need: schemas.NeedCreate, owner_id: int):
-    # Ensure the need belongs to the authenticated volunteer
+async def update_need(db: Session, need_id: int, need: schemas.NeedCreate, owner_id: int):
     db_need = db.query(models.Need).filter(
         models.Need.id == need_id,
         models.Need.owner_id == owner_id
@@ -54,6 +56,9 @@ def update_need(db: Session, need_id: int, need: schemas.NeedCreate, owner_id: i
             setattr(db_need, key, value)
         db.commit()
         db.refresh(db_need)
+
+        await match_handlers.trigger_need_matching(db, db_need)
+
         return db_need
     return None
 
@@ -66,5 +71,6 @@ def delete_need(db: Session, need_id: int, owner_id: int):
     if db_need:
         db.delete(db_need)
         db.commit()
+        crud_match.delete_matches_for_need(db, need_id)
         return True
     return False

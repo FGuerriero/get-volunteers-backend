@@ -24,7 +24,7 @@ router = APIRouter(
 )
 
 @router.post("/register", response_model=schemas.Volunteer, status_code=status.HTTP_201_CREATED)
-def register_volunteer(volunteer: schemas.VolunteerCreate, db: Session = Depends(get_db)):
+async def register_volunteer(volunteer: schemas.VolunteerCreate, db: Session = Depends(get_db)):
     """
     Registers a new Volunteer (who is also the user).
     """
@@ -32,7 +32,7 @@ def register_volunteer(volunteer: schemas.VolunteerCreate, db: Session = Depends
     if db_volunteer:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
-    return crud_volunteer.create_volunteer(db=db, volunteer=volunteer)
+    return await crud_volunteer.create_volunteer(db=db, volunteer=volunteer)
 
 @router.post("/login", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -46,7 +46,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not volunteer.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive volunteer")
 

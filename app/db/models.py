@@ -22,6 +22,7 @@ class Volunteer(Base):
     location = Column(String(255), nullable=True)
     availability = Column(String(255), nullable=True)
     is_active = Column(Integer, default=1)
+    volunteer_matches = relationship("VolunteerNeedMatch", back_populates="volunteer", cascade="all, delete-orphan")
 
 
 class Need(Base):
@@ -40,3 +41,15 @@ class Need(Base):
     contact_phone = Column(String(50), nullable=True)
     owner_id = Column(Integer, ForeignKey("volunteers.id"), nullable=False)
     owner = relationship("Volunteer", back_populates=None)
+    need_matches = relationship("VolunteerNeedMatch", back_populates="need", cascade="all, delete-orphan")
+
+
+class VolunteerNeedMatch(Base):
+    __tablename__ = "volunteer_need_matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    volunteer_id = Column(Integer, ForeignKey("volunteers.id"), nullable=False)
+    need_id = Column(Integer, ForeignKey("needs.id"), nullable=False)
+    match_details = Column(Text, nullable=False)
+    volunteer = relationship("Volunteer", back_populates="volunteer_matches")
+    need = relationship("Need", back_populates="need_matches")
