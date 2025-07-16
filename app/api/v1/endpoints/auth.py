@@ -1,12 +1,12 @@
-'''
+"""
 # Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
 # Created Date: Tue Jul 08 2025
 # SPDX-License-Identifier: MIT
-'''
+"""
 
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -23,8 +23,13 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
 @router.post("/register", response_model=schemas.Volunteer, status_code=status.HTTP_201_CREATED)
-async def register_volunteer(volunteer: schemas.VolunteerCreate, db: Session = Depends(get_db)):
+async def register_volunteer(
+    volunteer: schemas.VolunteerCreate,
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
+):
     """
     Registers a new Volunteer (who is also the user).
     """
@@ -32,10 +37,15 @@ async def register_volunteer(volunteer: schemas.VolunteerCreate, db: Session = D
     if db_volunteer:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
-    return await crud_volunteer.create_volunteer(db=db, volunteer=volunteer)
+    return await crud_volunteer.create_volunteer(
+        db=db, volunteer=volunteer, background_tasks=background_tasks
+    )
+
 
 @router.post("/login", response_model=schemas.Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
     """
     Authenticates a volunteer and returns an access token.
     """
@@ -51,10 +61,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive volunteer")
 
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(
-        data={"sub": volunteer.email}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": volunteer.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.get("/volunteers/me/", response_model=schemas.Volunteer)
 async def read_volunteers_me(current_volunteer: models.Volunteer = Depends(get_current_active_volunteer)):

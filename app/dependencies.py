@@ -1,8 +1,8 @@
-'''
+"""
 # Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
 # Created Date: Tue Jul 08 2025
 # SPDX-License-Identifier: MIT
-'''
+"""
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -33,7 +33,9 @@ def verify_token(token: str, credentials_exception: HTTPException) -> schemas.To
         raise credentials_exception
     return token_data
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/login")
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
@@ -48,9 +50,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
 
-def get_current_volunteer(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> Volunteer:
+
+def get_current_volunteer(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Volunteer:
     """
     FastAPI dependency to get the current authenticated volunteer.
     """
@@ -64,6 +65,7 @@ def get_current_volunteer(
     if volunteer is None:
         raise credentials_exception
     return volunteer
+
 
 def get_current_active_volunteer(current_volunteer: Volunteer = Depends(get_current_volunteer)) -> Volunteer:
     """

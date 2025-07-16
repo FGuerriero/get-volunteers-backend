@@ -11,9 +11,7 @@ from app.api.v1.endpoints import auth, needs, volunteers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(
-        "FastAPI application starting up. Database migrations are managed by Alembic."
-    )
+    print("FastAPI application starting up. Database migrations are managed by Alembic.")
     yield
     print("FastAPI application shutting down.")
 
@@ -28,5 +26,3 @@ app = FastAPI(
 app.include_router(volunteers.router, prefix="/api/v1")
 app.include_router(needs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
-
-

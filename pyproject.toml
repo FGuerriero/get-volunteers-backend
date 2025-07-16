@@ -11,8 +11,8 @@ exclude = [
     "tests",
 ]
 
-select = ["E", "W", "F", "I"]
-ignore = []
+lint.select = ["E", "W", "F", "I"]
+lint.ignore = []
 
 [tool.ruff.lint.isort] # Corrected: This is a sub-table
 known-first-party = ["app"]

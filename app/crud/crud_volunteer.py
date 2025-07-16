@@ -2,20 +2,19 @@
 # SPDX-License-Identifier: MIT
 #
 
+from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.crud import crud_match
 from app.db import models
-from app.schemas import schemas
 from app.events import match_handlers
+from app.schemas import schemas
 from app.utils.security import get_password_hash
 
 
 def get_volunteer(db: Session, volunteer_id: int):
-    return (
-        db.query(models.Volunteer).filter(models.Volunteer.id == volunteer_id).first()
-    )
+    return db.query(models.Volunteer).filter(models.Volunteer.id == volunteer_id).first()
 
 
 def get_volunteer_by_email(db: Session, email: str):
@@ -26,7 +25,9 @@ def get_volunteers(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Volunteer).offset(skip).limit(limit).all()
 
 
-async def create_volunteer(db: Session, volunteer: schemas.VolunteerCreate):
+async def create_volunteer(
+    db: Session, volunteer: schemas.VolunteerCreate, background_tasks: BackgroundTasks
+):
     hashed_password = get_password_hash(volunteer.password)
     db_volunteer = models.Volunteer(
         name=volunteer.name,
@@ -38,27 +39,27 @@ async def create_volunteer(db: Session, volunteer: schemas.VolunteerCreate):
         volunteer_interests=volunteer.volunteer_interests,
         location=volunteer.location,
         availability=volunteer.availability,
-        is_active=1
+        is_active=1,
     )
     try:
         db.add(db_volunteer)
         db.commit()
         db.refresh(db_volunteer)
 
-        await match_handlers.trigger_volunteer_matching(db, db_volunteer)
+        background_tasks.add_task(match_handlers.trigger_volunteer_matching, db_volunteer.id)
 
         return db_volunteer
     except IntegrityError:
         db.rollback()
-        return None  # Indicate that creation failed, likely due to duplicate email
+        return None
 
 
-async def update_volunteer(db: Session, volunteer_id: int, volunteer: schemas.VolunteerCreate):
-    db_volunteer = db.query(models.Volunteer).filter(
-        models.Volunteer.id == volunteer_id
-    ).first()
+async def update_volunteer(
+    db: Session, volunteer_id: int, volunteer: schemas.VolunteerCreate, background_tasks: BackgroundTasks
+):
+    db_volunteer = db.query(models.Volunteer).filter(models.Volunteer.id == volunteer_id).first()
     if db_volunteer:
-        update_data = volunteer.model_dump(exclude_unset=True, exclude={'password'})
+        update_data = volunteer.model_dump(exclude_unset=True, exclude={"password"})
         for key, value in update_data.items():
             setattr(db_volunteer, key, value)
 
@@ -68,16 +69,14 @@ async def update_volunteer(db: Session, volunteer_id: int, volunteer: schemas.Vo
         db.commit()
         db.refresh(db_volunteer)
 
-        await match_handlers.trigger_volunteer_matching(db, db_volunteer)
+        background_tasks.add_task(match_handlers.trigger_volunteer_matching, db_volunteer.id)
 
         return db_volunteer
     return None
 
 
 def delete_volunteer(db: Session, volunteer_id: int):
-    db_volunteer = db.query(models.Volunteer).filter(
-        models.Volunteer.id == volunteer_id
-    ).first()
+    db_volunteer = db.query(models.Volunteer).filter(models.Volunteer.id == volunteer_id).first()
     if db_volunteer:
         db.delete(db_volunteer)
         db.commit()

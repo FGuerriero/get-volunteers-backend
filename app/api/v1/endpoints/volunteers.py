@@ -4,7 +4,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.crud import crud_volunteer
@@ -28,6 +28,7 @@ def read_volunteers(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     volunteers = crud_volunteer.get_volunteers(db, skip=skip, limit=limit)
     return volunteers
 
+
 @router.get("/{volunteer_id}", response_model=schemas.Volunteer)
 def read_volunteer(volunteer_id: int, db: Session = Depends(get_db)):
     """
@@ -35,55 +36,53 @@ def read_volunteer(volunteer_id: int, db: Session = Depends(get_db)):
     """
     db_volunteer = crud_volunteer.get_volunteer(db, volunteer_id=volunteer_id)
     if db_volunteer is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Volunteer not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Volunteer not found")
     return db_volunteer
+
 
 @router.put("/{volunteer_id}", response_model=schemas.Volunteer)
 async def update_volunteer(
     volunteer_id: int,
     volunteer: schemas.VolunteerCreate,
-    current_volunteer: Volunteer = Depends(get_current_active_volunteer), 
-    db: Session = Depends(get_db)
+    current_volunteer: Volunteer = Depends(get_current_active_volunteer),
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Updates an existing volunteer profile. Only the owner can update their profile.
     """
     if volunteer_id != current_volunteer.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update your own volunteer profile."
+            status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own volunteer profile."
         )
 
-    db_volunteer = await crud_volunteer.update_volunteer(db, volunteer_id, volunteer)
+    db_volunteer = await crud_volunteer.update_volunteer(db, volunteer_id, volunteer, background_tasks)
     if db_volunteer is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, # Should not happen if ID matches current_volunteer.id
-            detail="Volunteer not found or an unexpected error occurred during update."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Volunteer not found or an unexpected error occurred during update.",
         )
     return db_volunteer
+
 
 @router.delete("/{volunteer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_volunteer(
     volunteer_id: int,
-    current_volunteer: Volunteer = Depends(get_current_active_volunteer), 
-    db: Session = Depends(get_db)
+    current_volunteer: Volunteer = Depends(get_current_active_volunteer),
+    db: Session = Depends(get_db),
 ):
     """
     Deletes a volunteer profile. Only the owner can delete their profile.
     """
     if volunteer_id != current_volunteer.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete your own volunteer profile."
+            status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own volunteer profile."
         )
 
     success = crud_volunteer.delete_volunteer(db, volunteer_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Volunteer not found or an unexpected error occurred during deletion."
+            detail="Volunteer not found or an unexpected error occurred during deletion.",
         )
     return {"message": "Volunteer deleted successfully"}

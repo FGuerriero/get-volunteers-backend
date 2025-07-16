@@ -2,15 +2,16 @@
 # SPDX-License-Identifier: MIT
 #
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
 
-from app.schemas import schemas
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from app.crud import crud_need
 from app.db.database import get_db
-from app.dependencies import get_current_active_volunteer 
-from app.db.models import Volunteer 
+from app.db.models import Volunteer
+from app.dependencies import get_current_active_volunteer
+from app.schemas import schemas
 
 router = APIRouter(
     prefix="/needs",
@@ -18,17 +19,22 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
 @router.post("/", response_model=schemas.Need, status_code=status.HTTP_201_CREATED)
 async def create_need(
     need: schemas.NeedCreate,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Creates a new need associated with the authenticated volunteer.
     """
     # Pass the owner_id (current_volunteer.id) to the CRUD function
-    return await crud_need.create_need(db=db, need=need, owner_id=current_volunteer.id)
+    return await crud_need.create_need(
+        db=db, need=need, owner_id=current_volunteer.id, background_tasks=background_tasks
+    )
+
 
 @router.get("/", response_model=List[schemas.Need])
 def read_needs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -38,6 +44,7 @@ def read_needs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     needs = crud_need.get_needs(db, skip=skip, limit=limit)
     return needs
 
+
 @router.get("/{need_id}", response_model=schemas.Need)
 def read_need(need_id: int, db: Session = Depends(get_db)):
     """
@@ -45,35 +52,35 @@ def read_need(need_id: int, db: Session = Depends(get_db)):
     """
     db_need = crud_need.get_need(db, need_id=need_id)
     if db_need is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Need not found")
     return db_need
+
 
 @router.put("/{need_id}", response_model=schemas.Need)
 async def update_need(
     need_id: int,
     need: schemas.NeedCreate,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Updates an existing need. Only the owner can update their need.
     """
-    db_need = await crud_need.update_need(db, need_id, need, current_volunteer.id)
+    db_need = await crud_need.update_need(db, need_id, need, current_volunteer.id, background_tasks)
     if db_need is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found or you don't have permission to update it"
+            detail="Need not found or you don't have permission to update it",
         )
     return db_need
+
 
 @router.delete("/{need_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_need(
     need_id: int,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Deletes a need. Only the owner can delete their need.
@@ -82,6 +89,6 @@ def delete_need(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found or you don't have permission to delete it"
+            detail="Need not found or you don't have permission to delete it",
         )
     return {"message": "Need deleted successfully"}
