@@ -23,16 +23,15 @@ router = APIRouter(
 @router.post("/", response_model=schemas.Need, status_code=status.HTTP_201_CREATED)
 async def create_need(
     need: schemas.NeedCreate,
+    background_tasks: BackgroundTasks,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
     db: Session = Depends(get_db),
-    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Creates a new need associated with the authenticated volunteer.
     """
-    # Pass the owner_id (current_volunteer.id) to the CRUD function
     return await crud_need.create_need(
-        db=db, need=need, owner_id=current_volunteer.id, background_tasks=background_tasks
+        db, need, owner_id=current_volunteer.id, background_tasks=background_tasks
     )
 
 
@@ -60,9 +59,9 @@ def read_need(need_id: int, db: Session = Depends(get_db)):
 async def update_need(
     need_id: int,
     need: schemas.NeedCreate,
+    background_tasks: BackgroundTasks,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
     db: Session = Depends(get_db),
-    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Updates an existing need. Only the owner can update their need.

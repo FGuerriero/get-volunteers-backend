@@ -16,51 +16,59 @@ from app.db import models
 
 
 class MatchingService:
+    _SYSTEM_INSTRUCTION = """
+    You are an expert volunteer matching specialist. Your primary goal is to analyze profiles and needs, and
+    identify the best fits. Always adhere to the specified JSON output format.
+    """
+
+    # Common user-facing prompt instructions, including criteria and examples
     _COMMON_PROMPT_INSTRUCTIONS = """
     **Matching Criteria:**
     1.  **Skills Fit:** Volunteers whose skills directly match or are highly relevant to the 'Required Skills
-        for Need' or are strongly implied by the 'Need Description'.
-    2.  **Interests Fit:** Volunteers whose 'Volunteer Interests' align with the nature of the 'Need'.
+        for Need' or are strongly implied by the 'Need Description'. Needs whose 'Required Skills' directly
+        match or are highly relevant to the volunteer's 'Skills'.
+    2.  **Interests Fit:** Volunteers whose 'Volunteer Interests' align with the nature of the 'Need'. Needs
+        whose nature aligns with the volunteer's 'Volunteer Interests'.
     3.  **About Me Relevance:** Any information in the 'About Me' field that indicates a strong suitability
-        for the need.
+        for the need/volunteer.
     4.  **Prioritize best fits:** It's not necessary to fulfill the 'Number of volunteers needed' completely
         if there aren't enough truly good fits. Focus on quality over quantity.
 
     **Output Format:**
     Provide a JSON array of objects. Each object should represent a good match and contain the following
     fields:
-    -   `volunteer_id` (for analyze_and_match) or `need_id` (for analyze_volunteer_against_all_needs): The
-        integer ID of the matched entity.
+    -   `volunteer_id` (when matching needs to volunteers) or `need_id` (when matching volunteers to needs):
+        The integer ID of the matched entity.
     -   `match_details`: A string explaining *why* this volunteer/need is a good fit, specifically mentioning
         how their skills, interests, or 'about me' section align.
 
-    Example Output for Need Analysis:
+    Example Output for Need Analysis (matching a need to volunteers):
     ```json
     [
         {{
             "volunteer_id": 123,
             "match_details": "Volunteer's 'Coding' skill directly matches the 'Software Development' need
-                description and their 'Tech' interest aligns."
+            description and their 'Tech' interest aligns."
         }},
         {{
             "volunteer_id": 456,
             "match_details": "Volunteer's 'Teaching' skill is suitable for the 'Educational Support' need and
-                their 'Youth Mentorship' interest is a strong fit."
+            their 'Youth Mentorship' interest is a strong fit."
         }}
     ]
     ```
-    Example Output for Volunteer Analysis:
+    Example Output for Volunteer Analysis (matching a volunteer to needs):
     ```json
     [
         {{
             "need_id": 789,
             "match_details": "Volunteer's 'Gardening' skill is perfect for the 'Community Garden Cleanup'
-                need, and their 'Environmental protection' interest aligns."
+            need, and their 'Environmental protection' interest aligns."
         }},
         {{
             "need_id": 101,
             "match_details": "Volunteer's 'Communication' skill is suitable for the 'Public Speaking Event'
-                need, and their 'Community outreach' interest is a strong fit."
+            need, and their 'Community outreach' interest is a strong fit."
         }}
     ]
     ```
@@ -70,17 +78,20 @@ class MatchingService:
         self.db = db
         genai.configure(api_key=settings.google_api_key)
 
+        self.model = genai.GenerativeModel(
+            model_name=settings.gemini_model_name, system_instruction=self._SYSTEM_INSTRUCTION
+        )
+
     async def _call_gemini_api(self, prompt: str, schema: Dict[str, Any]) -> Any:
         """
         Internal helper to call the Gemini API with a structured response schema using google-generativeai.
+        Reuses the pre-initialized model instance.
         """
         try:
-            model = genai.GenerativeModel(
-                model_name=settings.gemini_model_name,
+            response = await self.model.generate_content_async(
+                prompt,
                 generation_config={"response_mime_type": "application/json", "response_schema": schema},
             )
-
-            response = await model.generate_content_async(prompt)
 
             if (
                 response.candidates
@@ -110,14 +121,15 @@ class MatchingService:
         volunteer_info = "\n".join(
             [
                 f"""- ID: {v.id}, Name: {v.name}, Email: {v.email}, Skills: {v.skills or 'None'},
-                    About: {v.about_me or 'None'}, Interests: {v.volunteer_interests or 'None'}"""
+            About: {v.about_me or 'None'}, Interests: {v.volunteer_interests or 'None'}"""
                 for v in all_volunteers
             ]
         )
 
+        # Prompt now starts with specific task, then common instructions
         prompt = f"""
-        You are an expert volunteer matching specialist. Your task is to analyze a specific volunteer need and
-        a list of available volunteers, and identify the best fits based on skills and interests.
+        Your task is to analyze the following volunteer need and list of available volunteers, and identify
+        the best fits based on skills and interests.
 
         **Volunteer Need Details:**
         Title: {need.title}
@@ -150,15 +162,11 @@ class MatchingService:
                     if crud_volunteer.get_volunteer(self.db, volunteer_id):
                         crud_match.create_match(self.db, volunteer_id, need.id, match_details)
                     else:
-                        print(
-                            f"""Warning: Gemini suggested non-existent volunteer ID {volunteer_id}
-                             for Need ID {need.id}"""
-                        )
+                        print(f"""Warning: Gemini suggested non-existent volunteer ID {volunteer_id}
+                               for Need ID {need.id}""")
                 else:
-                    print(
-                        f"""Warning: Gemini returned invalid match data format for Need ID {need.id}:
-                        {match_data}"""
-                    )
+                    print(f"""Warning: Gemini returned invalid match data format for Need ID {need.id}:
+                           {match_data}""")
         else:
             print(f"Gemini did not return valid matches for Need ID {need.id}")
 
@@ -178,15 +186,15 @@ class MatchingService:
         need_info = "\n".join(
             [
                 f"""- ID: {n.id}, Title: {n.title}, Description: {n.description}, Required Skills:
-                {n.required_skills or 'None'}"""
+                  {n.required_skills or 'None'}"""
                 for n in all_needs
             ]
         )
 
+        # Prompt now starts with specific task, then common instructions
         prompt = f"""
-        You are an expert volunteer matching specialist. Your task is to analyze a specific volunteer's
-        profile and a list of available needs, and identify the best fits for this volunteer based on their
-        skills and interests.
+        Your task is to analyze the following volunteer's profile and list of available needs, and identify
+          the best fits for this volunteer based on their skills and interests.
 
         **Volunteer Details:**
         ID: {volunteer.id}
@@ -222,13 +230,13 @@ class MatchingService:
                         crud_match.create_match(self.db, volunteer.id, need_id, match_details)
                     else:
                         print(
-                            f"""Warning: Gemini suggested non-existent need ID {need_id}
-                            for Volunteer ID {volunteer.id}"""
+                            f"""Warning: Gemini suggested non-existent need ID {need_id} for Volunteer ID
+                              {volunteer.id}"""
                         )
                 else:
                     print(
                         f"""Warning: Gemini returned invalid match data format for Volunteer ID
-                        {volunteer.id}: {match_data}"""
+                          {volunteer.id}: {match_data}"""
                     )
         else:
             print(f"Gemini did not return valid matches for Volunteer ID {volunteer.id}")

@@ -27,8 +27,8 @@ router = APIRouter(
 @router.post("/register", response_model=schemas.Volunteer, status_code=status.HTTP_201_CREATED)
 async def register_volunteer(
     volunteer: schemas.VolunteerCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Registers a new Volunteer (who is also the user).
@@ -38,7 +38,7 @@ async def register_volunteer(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     return await crud_volunteer.create_volunteer(
-        db=db, volunteer=volunteer, background_tasks=background_tasks
+        db, volunteer, background_tasks
     )
 
 

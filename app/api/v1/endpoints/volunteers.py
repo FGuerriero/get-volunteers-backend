@@ -44,9 +44,9 @@ def read_volunteer(volunteer_id: int, db: Session = Depends(get_db)):
 async def update_volunteer(
     volunteer_id: int,
     volunteer: schemas.VolunteerCreate,
+    background_tasks: BackgroundTasks,
     current_volunteer: Volunteer = Depends(get_current_active_volunteer),
     db: Session = Depends(get_db),
-    background_tasks: BackgroundTasks = Depends(BackgroundTasks),
 ):
     """
     Updates an existing volunteer profile. Only the owner can update their profile.
