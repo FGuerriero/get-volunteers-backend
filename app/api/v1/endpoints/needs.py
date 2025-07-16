@@ -31,7 +31,7 @@ async def create_need(
     Creates a new need associated with the authenticated volunteer.
     """
     return await crud_need.create_need(
-        db, need, owner_id=current_volunteer.id, background_tasks=background_tasks
+        db=db, need=need, owner_id=current_volunteer.id, background_tasks=background_tasks
     )
 
 

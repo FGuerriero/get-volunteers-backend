@@ -6,9 +6,9 @@ from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.background_tasks import match_handlers
 from app.crud import crud_match
 from app.db import models
-from app.events import match_handlers
 from app.schemas import schemas
 from app.utils.security import get_password_hash
 
