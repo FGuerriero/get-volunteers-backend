@@ -197,8 +197,6 @@ async def test_create_volunteer_authenticated_via_register(client: TestClient, d
 
     client.app.dependency_overrides[BackgroundTasks] = lambda: mock_background_tasks_for_api
 
-    mock_trigger_volunteer_matching = mocker.patch('app.background_tasks.match_handlers.trigger_volunteer_matching')
-
     try:
         volunteer_data = {
             "name": "Test Register Volunteer",
