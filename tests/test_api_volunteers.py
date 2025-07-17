@@ -462,3 +462,25 @@ async def test_delete_volunteer_unauthenticated(client: TestClient, db_session: 
 
     response = client.delete(f"/api/v1/volunteers/{owner_volunteer_id}")
     assert response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_delete_volunteer_not_found_or_failed(client: TestClient, db_session: Session, authenticated_volunteer_and_token, mocker):
+    """
+    Tests deleting a non-existent volunteer profile or when crud_volunteer.delete_volunteer fails.
+    """
+    owner_volunteer_email, owner_token = authenticated_volunteer_and_token
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_volunteer_email)
+    mocker.patch('app.dependencies.get_current_active_volunteer', return_value=owner_volunteer)
+
+    mock_crud_delete_volunteer = mocker.patch('app.crud.crud_volunteer.delete_volunteer', return_value=False)
+
+    volunteer_id_to_delete = owner_volunteer.id 
+
+    response = client.delete(
+        f"/api/v1/volunteers/{volunteer_id_to_delete}",
+        headers={"Authorization": f"Bearer {owner_token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Volunteer not found or an unexpected error occurred during deletion."
+    
+    mock_crud_delete_volunteer.assert_called_once_with(db_session, volunteer_id_to_delete)

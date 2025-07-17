@@ -57,7 +57,7 @@ def client_fixture(db_session: Session):
 
 # Helper fixture to create and authenticate a test volunteer
 @pytest.fixture(name="authenticated_volunteer_and_token")
-def authenticated_volunteer_and_token_fixture(client: TestClient, db_session: Session):
+def authenticated_volunteer_and_token_fixture(client: TestClient):
     email = "auth_test_volunteer@example.com"
     password = "testpassword"
 
