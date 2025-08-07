@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     google_api_key: str = ""
     gemini_model_name: str = "gemini-2.0-flash"
+    sendgrid_api_key: str = ""
+    mail_sender_email: str = "no-reply@example.com"
+    mail_sender_name: str = "getVolunteer Team"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

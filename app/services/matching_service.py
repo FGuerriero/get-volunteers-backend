@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.crud import crud_match, crud_need, crud_volunteer
 from app.db import models
+from app.services.email_service import EmailService
 
 
 class MatchingService:
@@ -81,6 +82,7 @@ class MatchingService:
         self.model = genai.GenerativeModel(
             model_name=settings.gemini_model_name, system_instruction=self._SYSTEM_INSTRUCTION
         )
+        self.email_service = EmailService()
 
     async def _call_gemini_api(self, prompt: str, schema: Dict[str, Any]) -> Any:
         """
@@ -159,8 +161,10 @@ class MatchingService:
                 match_details = match_data.get("match_details")
 
                 if isinstance(volunteer_id, int) and isinstance(match_details, str):
-                    if crud_volunteer.get_volunteer(self.db, volunteer_id):
+                    volunteer = crud_volunteer.get_volunteer(self.db, volunteer_id)
+                    if volunteer:
                         crud_match.create_match(self.db, volunteer_id, need.id, match_details)
+                        await self.email_service.send_match_notification(volunteer, need, match_details)
                     else:
                         print(f"""Warning: Gemini suggested non-existent volunteer ID {volunteer_id}
                                for Need ID {need.id}""")
@@ -226,8 +230,10 @@ class MatchingService:
                 match_details = match_data.get("match_details")
 
                 if isinstance(need_id, int) and isinstance(match_details, str):
-                    if crud_need.get_need(self.db, need_id):
+                    need = crud_need.get_need(self.db, need_id)
+                    if need:
                         crud_match.create_match(self.db, volunteer.id, need_id, match_details)
+                        await self.email_service.send_match_notification(volunteer, need, match_details)
                     else:
                         print(
                             f"""Warning: Gemini suggested non-existent need ID {need_id} for Volunteer ID
