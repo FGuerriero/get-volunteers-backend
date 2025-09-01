@@ -91,7 +91,5 @@ class EmailService:
         try:
             response = self.sg.send(message)
             print(f"Email sent to {to_email}. Status Code: {response.status_code}")
-            # print(f"Response Body: {response.body}") # Uncomment for debugging
-            # print(f"Response Headers: {response.headers}") # Uncomment for debugging
         except Exception as e:
             print(f"Error sending email to {to_email}: {e}")
