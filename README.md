@@ -101,7 +101,11 @@ Open .env and fill in your database credentials and a strong secret key:
 DATABASE_URL="mysql+mysqlconnector://your_username:your_strong_password@localhost:3306/getVolunteers"
 SECRET_KEY="your_super_secret_key_here_change_this_in_production"
 APP_ENV="development"
+ALLOWED_ORIGINS="http://localhost:3000"
 ```
+
+**Important Environment Variables:**
+- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS. For development use `http://localhost:3000`, for production use your frontend domain(s).
 
 ### 5. Install Dependencies
 
