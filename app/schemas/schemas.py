@@ -34,6 +34,7 @@ class VolunteerCreate(VolunteerBase):
 class Volunteer(VolunteerBase):
     id: int
     is_active: bool
+    is_manager: bool
 
     model_config = ConfigDict(from_attributes=True)
 

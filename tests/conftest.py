@@ -2,62 +2,84 @@
 # SPDX-License-Identifier: MIT
 #
 
+import os
 import pytest
-from sqlalchemy.orm import  Session 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session 
+from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
-from app.config import settings
+# Safety check to prevent tests from running against production database
+if os.getenv("TESTING") != "1":
+    os.environ["TESTING"] = "1"
+
+# Create test database engine and session
+TEST_DATABASE_URL = "sqlite:///:memory:"
+test_engine = create_engine(
+    TEST_DATABASE_URL, 
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    echo=False
+)
+TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
 from app.db.database import Base, get_db
-
-# Temporarily set the database URL to an in-memory SQLite for testing
-# This must happen *before* importing app.app if app.app initializes
-# database components based on settings.
-settings.database_url = "sqlite:///:memory:"
-
-# Re-import or re-create engine and SessionLocal based on the new settings.database_url
-# This ensures that the app's database connection uses the in-memory SQLite.
-# We need to do this explicitly because app.db.database.py might have already
-# initialized its engine based on the original settings.
-from app.db.database import engine, SessionLocal # Re-import after setting test DB URL
-
-# Import the main FastAPI app
 from app.app import app
 from app.db.models import Volunteer
+from tests.test_helpers import MockBackgroundTasks
+from fastapi import BackgroundTasks
+import pytest_asyncio
 
 
-@pytest.fixture(name="db_session")
+@pytest.fixture(name="db_session", scope="function")
 def db_session_fixture():
     """
-    Creates a new database session for the entire test session, with all tables created.
-    Rolls back the session after the test to ensure a clean state.
+    Creates a new database session for each test, with all tables created.
+    Uses simple session creation for SQLite in-memory database.
     """
     # Create the tables in the test database
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal() # Use the SessionLocal from app.db.database
+    Base.metadata.create_all(bind=test_engine)
+    
+    # Create session
+    db = TestSessionLocal()
+    
     try:
         yield db
     finally:
         db.close()
-        # Drop all tables after the test to ensure a clean slate for the next test run
-        Base.metadata.drop_all(bind=engine)
+        # Drop all tables after the test to ensure a clean slate
+        Base.metadata.drop_all(bind=test_engine)
 
 @pytest.fixture(name="client")
-def client_fixture(db_session: Session):
+def client_fixture(db_session: Session, mocker):
     """
     Provides a FastAPI TestClient that overrides the get_db dependency
-    to use the test database session.
+    to use the test database session and mocks all background tasks.
     """
     def override_get_db():
         yield db_session
+    
+    def override_background_tasks():
+        return MockBackgroundTasks()
+
+    # Mock all background task functions globally
+    mocker.patch('app.background_tasks.match_handlers.trigger_volunteer_matching')
+    mocker.patch('app.background_tasks.match_handlers.trigger_need_matching')
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[BackgroundTasks] = override_background_tasks
+    
     with TestClient(app) as test_client:
         yield test_client
+    
     app.dependency_overrides.clear()
 
 # Helper fixture to create and authenticate a test volunteer
 @pytest.fixture(name="authenticated_volunteer_and_token")
-def authenticated_volunteer_and_token_fixture(client: TestClient):
+def authenticated_volunteer_and_token_fixture(client: TestClient, db_session: Session, mocker):
+    # Mock background tasks to prevent database access issues
+    mocker.patch('app.background_tasks.match_handlers.trigger_volunteer_matching')
+    
     email = "auth_test_volunteer@example.com"
     password = "testpassword"
 

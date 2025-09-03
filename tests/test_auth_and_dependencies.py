@@ -107,6 +107,19 @@ async def test_get_current_active_volunteer_not_found_in_db(client: TestClient, 
     assert response.json()["detail"] == "Could not validate credentials"
 
 @pytest.mark.asyncio
+async def test_create_access_token_with_custom_expiry(db_session: Session):
+    """Test create_access_token with custom expiry delta"""
+    from app.dependencies import create_access_token
+    from datetime import timedelta
+    
+    data = {"sub": "test@example.com"}
+    custom_expiry = timedelta(minutes=60)
+    
+    token = create_access_token(data, expires_delta=custom_expiry)
+    assert token is not None
+    assert isinstance(token, str)
+
+@pytest.mark.asyncio
 async def test_get_current_active_volunteer_inactive(client: TestClient, db_session: Session, mocker):
     """
     Tests get_current_active_volunteer when the volunteer is inactive.

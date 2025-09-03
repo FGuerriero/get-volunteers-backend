@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.crud import crud_need
 from app.db.database import get_db
 from app.db.models import Volunteer
-from app.dependencies import get_current_active_volunteer
+from app.dependencies import get_current_active_volunteer, get_current_manager
 from app.schemas import schemas
 
 router = APIRouter(
@@ -36,22 +36,39 @@ async def create_need(
 
 
 @router.get("/", response_model=List[schemas.Need])
-def read_needs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_needs(
+    current_volunteer: Volunteer = Depends(get_current_active_volunteer),
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100
+):
     """
-    Retrieves a list of all needs. (Publicly accessible)
+    Retrieves needs. Managers see all needs, volunteers see only their own.
     """
-    needs = crud_need.get_needs(db, skip=skip, limit=limit)
+    if current_volunteer.is_manager:
+        needs = crud_need.get_needs(db, skip=skip, limit=limit)
+    else:
+        needs = crud_need.get_needs_by_owner(db, owner_id=current_volunteer.id, skip=skip, limit=limit)
     return needs
 
 
 @router.get("/{need_id}", response_model=schemas.Need)
-def read_need(need_id: int, db: Session = Depends(get_db)):
+def read_need(
+    need_id: int,
+    current_volunteer: Volunteer = Depends(get_current_active_volunteer),
+    db: Session = Depends(get_db)
+):
     """
-    Retrieves a single need by ID. (Publicly accessible)
+    Retrieves a single need by ID. Managers can access any need, volunteers only their own.
     """
     db_need = crud_need.get_need(db, need_id=need_id)
     if db_need is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Need not found")
+    
+    # Check access permissions
+    if not current_volunteer.is_manager and db_need.owner_id != current_volunteer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
     return db_need
 
 
@@ -64,15 +81,20 @@ async def update_need(
     db: Session = Depends(get_db),
 ):
     """
-    Updates an existing need. Only the owner can update their need.
+    Updates an existing need. Managers can update any need, volunteers only their own.
     """
-    db_need = await crud_need.update_need(db, need_id, need, current_volunteer.id, background_tasks)
+    # Check if need exists and get access permissions
+    db_need = crud_need.get_need(db, need_id=need_id)
     if db_need is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found or you don't have permission to update it",
-        )
-    return db_need
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Need not found")
+    
+    # Check permissions
+    if not current_volunteer.is_manager and db_need.owner_id != current_volunteer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    # Update the need
+    updated_need = await crud_need.update_need(db, need_id, need, current_volunteer.id, background_tasks, is_manager=current_volunteer.is_manager)
+    return updated_need
 
 
 @router.delete("/{need_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -82,12 +104,22 @@ def delete_need(
     db: Session = Depends(get_db),
 ):
     """
-    Deletes a need. Only the owner can delete their need.
+    Deletes a need. Managers can delete any need, volunteers only their own.
     """
-    success = crud_need.delete_need(db, need_id, current_volunteer.id)
+    # Check if need exists and get access permissions
+    db_need = crud_need.get_need(db, need_id=need_id)
+    if db_need is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Need not found")
+    
+    # Check permissions
+    if not current_volunteer.is_manager and db_need.owner_id != current_volunteer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    # Delete the need
+    success = crud_need.delete_need(db, need_id, current_volunteer.id, is_manager=current_volunteer.is_manager)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Need not found or you don't have permission to delete it",
+            detail="Need not found or an unexpected error occurred during deletion",
         )
     return {"message": "Need deleted successfully"}

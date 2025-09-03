@@ -74,3 +74,12 @@ def get_current_active_volunteer(current_volunteer: Volunteer = Depends(get_curr
     if not current_volunteer.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive volunteer")
     return current_volunteer
+
+
+def get_current_manager(current_volunteer: Volunteer = Depends(get_current_active_volunteer)) -> Volunteer:
+    """
+    FastAPI dependency to get the current authenticated manager.
+    """
+    if not current_volunteer.is_manager:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Manager access required")
+    return current_volunteer

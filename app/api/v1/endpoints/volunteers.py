@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.crud import crud_volunteer
 from app.db.database import get_db
 from app.db.models import Volunteer
-from app.dependencies import get_current_active_volunteer
+from app.dependencies import get_current_active_volunteer, get_current_manager
 from app.schemas import schemas
 
 router = APIRouter(
@@ -21,18 +21,18 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.Volunteer])
-def read_volunteers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_volunteers(skip: int = 0, limit: int = 100, current_manager: Volunteer = Depends(get_current_manager), db: Session = Depends(get_db)):
     """
-    Retrieves a list of all volunteer profiles. (Publicly accessible)
+    Retrieves a list of all volunteer profiles. (Manager access required)
     """
     volunteers = crud_volunteer.get_volunteers(db, skip=skip, limit=limit)
     return volunteers
 
 
 @router.get("/{volunteer_id}", response_model=schemas.Volunteer)
-def read_volunteer(volunteer_id: int, db: Session = Depends(get_db)):
+def read_volunteer(volunteer_id: int, current_manager: Volunteer = Depends(get_current_manager), db: Session = Depends(get_db)):
     """
-    Retrieves a single volunteer profile by ID. (Publicly accessible)
+    Retrieves a single volunteer profile by ID. (Manager access required)
     """
     db_volunteer = crud_volunteer.get_volunteer(db, volunteer_id=volunteer_id)
     if db_volunteer is None:

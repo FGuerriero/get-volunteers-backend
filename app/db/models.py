@@ -22,6 +22,7 @@ class Volunteer(Base):
     location = Column(String(255), nullable=True)
     availability = Column(String(255), nullable=True)
     is_active = Column(Integer, default=1)
+    is_manager = Column(Integer, default=0, nullable=False)
     volunteer_matches = relationship(
         "VolunteerNeedMatch", back_populates="volunteer", cascade="all, delete-orphan"
     )

@@ -20,6 +20,10 @@ def get_needs(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Need).offset(skip).limit(limit).all()
 
 
+def get_needs_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.Need).filter(models.Need.owner_id == owner_id).offset(skip).limit(limit).all()
+
+
 async def create_need(
     db: Session, need: schemas.NeedCreate, owner_id: int, background_tasks: BackgroundTasks
 ):
@@ -50,11 +54,13 @@ async def create_need(
 
 
 async def update_need(
-    db: Session, need_id: int, need: schemas.NeedCreate, owner_id: int, background_tasks: BackgroundTasks
+    db: Session, need_id: int, need: schemas.NeedCreate, owner_id: int, background_tasks: BackgroundTasks, is_manager: bool = False
 ):
-    db_need = (
-        db.query(models.Need).filter(models.Need.id == need_id, models.Need.owner_id == owner_id).first()
-    )
+    if is_manager:
+        db_need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    else:
+        db_need = db.query(models.Need).filter(models.Need.id == need_id, models.Need.owner_id == owner_id).first()
+    
     if db_need:
         for key, value in need.model_dump(exclude_unset=True).items():
             setattr(db_need, key, value)
@@ -67,10 +73,12 @@ async def update_need(
     return None
 
 
-def delete_need(db: Session, need_id: int, owner_id: int):
-    db_need = (
-        db.query(models.Need).filter(models.Need.id == need_id, models.Need.owner_id == owner_id).first()
-    )
+def delete_need(db: Session, need_id: int, owner_id: int, is_manager: bool = False):
+    if is_manager:
+        db_need = db.query(models.Need).filter(models.Need.id == need_id).first()
+    else:
+        db_need = db.query(models.Need).filter(models.Need.id == need_id, models.Need.owner_id == owner_id).first()
+    
     if db_need:
         db.delete(db_need)
         db.commit()

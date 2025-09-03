@@ -13,7 +13,10 @@ from app.api.v1.endpoints import auth, needs, volunteers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("FastAPI application starting up. Database migrations are managed by Alembic.")
+    if os.getenv("TESTING") == "1":
+        print("FastAPI application starting up in TESTING mode.")
+    else:
+        print("FastAPI application starting up. Database migrations are managed by Alembic.")
     yield
     print("FastAPI application shutting down.")
 

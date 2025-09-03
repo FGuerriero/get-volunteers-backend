@@ -354,6 +354,65 @@ async def test_analyze_and_match_gemini_invalid_data_format(db_session: Session,
     assert matches[0].volunteer_id == existing_volunteer.id
 
 @pytest.mark.asyncio
+async def test_update_need_manager_access(db_session: Session, mocker):
+    """Test update_need with manager access"""
+    owner_volunteer = create_dummy_volunteer(db_session, email="owner_manager_update@example.com")
+    manager_volunteer = create_dummy_volunteer(db_session, email="manager_update@example.com")
+    manager_volunteer.is_manager = 1
+    db_session.commit()
+
+    mock_bg_tasks = MockBackgroundTasks()
+    mocker.patch('app.background_tasks.match_handlers.trigger_need_matching')
+
+    need_data = schemas.NeedCreate(
+        title="Manager Update Need",
+        description="Manager can update",
+        num_volunteers_needed=1,
+        format="virtual",
+        contact_name="Manager",
+        contact_email="manager@example.com",
+    )
+    created_need = await crud_need.create_need(db_session, need_data, owner_id=owner_volunteer.id, background_tasks=mock_bg_tasks)
+
+    update_data = schemas.NeedCreate(
+        title="Updated by Manager",
+        description="Manager updated this",
+        num_volunteers_needed=2,
+        format="in-person",
+        contact_name="Manager",
+        contact_email="manager@example.com",
+    )
+    updated_need = await crud_need.update_need(db_session, created_need.id, update_data, owner_id=manager_volunteer.id, background_tasks=mock_bg_tasks, is_manager=True)
+
+    assert updated_need is not None
+    assert updated_need.title == "Updated by Manager"
+
+@pytest.mark.asyncio
+async def test_delete_need_manager_access(db_session: Session, mocker):
+    """Test delete_need with manager access"""
+    owner_volunteer = create_dummy_volunteer(db_session, email="owner_manager_delete@example.com")
+    manager_volunteer = create_dummy_volunteer(db_session, email="manager_delete@example.com")
+    manager_volunteer.is_manager = 1
+    db_session.commit()
+
+    mock_bg_tasks = MockBackgroundTasks()
+    mocker.patch('app.background_tasks.match_handlers.trigger_need_matching')
+
+    need_data = schemas.NeedCreate(
+        title="Manager Delete Need",
+        description="Manager can delete",
+        num_volunteers_needed=1,
+        format="virtual",
+        contact_name="Manager",
+        contact_email="manager@example.com",
+    )
+    created_need = await crud_need.create_need(db_session, need_data, owner_id=owner_volunteer.id, background_tasks=mock_bg_tasks)
+
+    success = crud_need.delete_need(db_session, created_need.id, owner_id=manager_volunteer.id, is_manager=True)
+    assert success is True
+    assert crud_need.get_need(db_session, created_need.id) is None
+
+@pytest.mark.asyncio
 async def test_analyze_and_match_gemini_no_valid_matches(db_session: Session, mocker, capsys):
     """
     Tests analyze_and_match when Gemini returns no valid matches or None.
