@@ -1,0 +1,18 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# Created Date: Mon Sep 08 2025
+# SPDX-License-Identifier: MIT
+
+version: "3.8"
+
+services:
+  backend:
+    build: .
+    image: get-volunteers-backend:latest
+    container_name: get-volunteers-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
