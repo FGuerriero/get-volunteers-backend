@@ -55,6 +55,13 @@ jobs:
             # Pull the most recent image from GHCR
             docker pull ghcr.io/${{ steps.get_repo_name.outputs.repo_name }}:latest
 
+            # Run database migrations
+            docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            ghcr.io/${{ steps.get_repo_name.outputs.repo_name }}:latest \
+            alembic upgrade head
+
             # Execute the container with the new image
             docker run -d --restart=unless-stopped --name get-volunteers-backend -p 8000:8000 \
             --add-host=host.docker.internal:host-gateway \
