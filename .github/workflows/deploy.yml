@@ -1,0 +1,75 @@
+# Copyright (c) 2025 Fernando Guerriero Cardoso da Silva.
+# Created Date: Tue Sep 09 2025
+# SPDX-License-Identifier: MIT
+
+name: Deploy GetVolunteers backend with Docker to Oracle Cloud VM
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get lowercase repository name
+        id: get_repo_name
+        run: echo "repo_name=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker image to GHCR
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ steps.get_repo_name.outputs.repo_name }}:latest
+
+      - name: Deploy with SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker login ghcr.io -u ${{ secrets.GHCR_USERNAME }} -p ${{ secrets.GHCR_TOKEN }}
+
+            # Stop and remove current container (if exists)
+            docker stop get-volunteers-backend || true
+            docker rm get-volunteers-backend || true
+
+            # Pull the most recent image from GHCR
+            docker pull ghcr.io/${{ steps.get_repo_name.outputs.repo_name }}:latest
+
+            # Execute the container with the new image
+            docker run -d --restart=unless-stopped --name get-volunteers-backend -p 8000:8000 \
+            --add-host=host.docker.internal:host-gateway \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            -e APP_ENV="${{ secrets.APP_ENV }}" \
+            -e GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" \
+            -e ACCESS_TOKEN_EXPIRE_MINUTES="${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}" \
+            -e ALGORITHM="${{ secrets.ALGORITHM }}" \
+            -e GEMINI_MODEL_NAME="${{ secrets.GEMINI_MODEL_NAME }}" \
+            -e SENDGRID_API_KEY="${{ secrets.SENDGRID_API_KEY }}" \
+            -e MAIL_SENDER_EMAIL="${{ secrets.MAIL_SENDER_EMAIL }}" \
+            -e MAIL_SENDER_NAME="${{ secrets.MAIL_SENDER_NAME }}" \
+            -e ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}" \
+            ghcr.io/${{ steps.get_repo_name.outputs.repo_name }}:latest
+
+            # Clean old Docker images to save storage
+            docker image prune -f
