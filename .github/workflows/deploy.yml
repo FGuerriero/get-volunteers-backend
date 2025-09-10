@@ -59,6 +59,7 @@ jobs:
             docker run --rm \
             --add-host=host.docker.internal:host-gateway \
             -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
             ghcr.io/${{ steps.get_repo_name.outputs.repo_name }}:latest \
             alembic upgrade head
 
