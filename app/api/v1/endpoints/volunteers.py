@@ -20,6 +20,20 @@ router = APIRouter(
 )
 
 
+@router.post("/", response_model=schemas.Volunteer, status_code=status.HTTP_201_CREATED)
+async def create_volunteer(
+    volunteer: schemas.VolunteerCreate,
+    background_tasks: BackgroundTasks,
+    current_manager: Volunteer = Depends(get_current_manager),
+    db: Session = Depends(get_db),
+):
+    """
+    Creates a new volunteer profile. (Manager access required)
+    """
+    db_volunteer = await crud_volunteer.create_volunteer(db, volunteer, background_tasks)
+    return db_volunteer
+
+
 @router.get("/", response_model=List[schemas.Volunteer])
 def read_volunteers(skip: int = 0, limit: int = 100, current_manager: Volunteer = Depends(get_current_manager), db: Session = Depends(get_db)):
     """
@@ -72,11 +86,13 @@ def delete_volunteer(
     db: Session = Depends(get_db),
 ):
     """
-    Deletes a volunteer profile. Only the owner can delete their profile.
+    Deletes a volunteer profile. Managers can delete any profile, volunteers can only delete their own.
     """
-    if volunteer_id != current_volunteer.id:
+    # Allow managers to delete any volunteer, or volunteers to delete their own profile
+    if not current_volunteer.is_manager and volunteer_id != current_volunteer.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own volunteer profile."
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="You can only delete your own volunteer profile unless you are a manager."
         )
 
     success = crud_volunteer.delete_volunteer(db, volunteer_id)
