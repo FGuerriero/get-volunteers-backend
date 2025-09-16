@@ -65,7 +65,7 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/volunteers/me/", response_model=schemas.Volunteer)
+@router.get("/volunteers/me", response_model=schemas.Volunteer)
 async def read_volunteers_me(current_volunteer: models.Volunteer = Depends(get_current_active_volunteer)):
     """
     Retrieves the current authenticated volunteer's profile.
