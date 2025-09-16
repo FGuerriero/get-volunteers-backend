@@ -94,17 +94,22 @@ Create a .env file in the project root based on .env.example:
 cp .env.example .env
 ```
 
-Open .env and fill in your database credentials and a strong secret key:
+Open .env and fill up variables to fit your environment:
 
-```bash
-# .env
-DATABASE_URL="mysql+mysqlconnector://your_username:your_strong_password@localhost:3306/getVolunteers"
-SECRET_KEY="your_super_secret_key_here_change_this_in_production"
-APP_ENV="development"
-ALLOWED_ORIGINS="http://localhost:3000"
-```
+- DATABASE_URL: Connection string to your database and schema;
+- SECRET_KEY: Key used for encryption;
+- ALGORITHM: Algorithm for encription, it could be "HS256" for example or any other you prefer;
+- APP_ENV: "development" or "production";
+- GOOGLE_API_KEY: Follow [instructions](https://support.google.com/googleapi/answer/6158862?hl=en) to get yours;
+- GEMINI_MODEL_NAME: Use the following [link](https://ai.google.dev/gemini-api/docs/models) t oget models named or use the tested "gemini-2.0-flash";
+- ACCESS_TOKEN_EXPIRE_MINUTES: Time to token expiration (after this time user must login again);
+- SENDGRID_API_KEY: Follow [instructions](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/api-keys) to get yours;
+- MAIL_SENDER_EMAIL: The email you want to use when sending notifications for Voluinteers;
+- MAIL_SENDER_NAME: A user frandly name that the email receiver is going to read first (could be "getVolunteers Team" for example);
+- ALLOWED_ORIGINS: This variable is important for CORS policy in production environments where you must fill with your domain or subdomain or for development environment you can leave it empty.
 
 **Important Environment Variables:**
+
 - `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS. For development use `http://localhost:3000`, for production use your frontend domain(s).
 
 ### 5. Install Dependencies
