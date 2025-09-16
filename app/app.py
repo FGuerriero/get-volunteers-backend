@@ -26,7 +26,6 @@ app = FastAPI(
     description="API for connecting volunteers with needs.",
     version="0.1.0",
     lifespan=lifespan,
-    redirect_slashes=False,
 )
 
 # Configure CORS
