@@ -79,6 +79,14 @@ async def update_volunteer(
     return db_volunteer
 
 
+@router.get("/me", response_model=schemas.Volunteer)
+async def read_volunteers_me(current_volunteer: Volunteer = Depends(get_current_active_volunteer)):
+    """
+    Retrieves the current authenticated volunteer's profile.
+    """
+    return current_volunteer
+
+
 @router.delete("/{volunteer_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_volunteer(
     volunteer_id: int,
