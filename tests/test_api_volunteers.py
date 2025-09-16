@@ -245,3 +245,102 @@ async def test_delete_volunteer_authenticated_owner(client: TestClient, db_sessi
     mocker.patch('app.dependencies.get_current_manager', return_value=manager_volunteer)
     response = client.get(f"/api/v1/volunteers/{owner_volunteer_id}", headers={"Authorization": f"Bearer {manager_token}"})
     assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_read_volunteers_me_authenticated_success(client: TestClient, db_session: Session, authenticated_volunteer_and_token):
+    """
+    Tests successful retrieval of the current authenticated volunteer's profile.
+    """
+    owner_email, owner_token = authenticated_volunteer_and_token
+    owner_volunteer = crud_volunteer.get_volunteer_by_email(db_session, owner_email)
+    
+    response = client.get(
+        "/api/v1/volunteers/me",
+        headers={"Authorization": f"Bearer {owner_token}"}
+    )
+    
+    assert response.status_code == 200
+    
+    response_data = response.json()
+    assert response_data["email"] == owner_email
+    assert response_data["id"] == owner_volunteer.id
+    assert response_data["is_active"] is True
+    assert response_data["name"] == "Auth Test Volunteer"
+
+@pytest.mark.asyncio
+async def test_get_current_active_volunteer_missing_email_in_token(client: TestClient, db_session: Session, mocker):
+    """
+    Tests get_current_active_volunteer when token_data.email is missing.
+    """
+    from datetime import timedelta, datetime, timezone
+    from app.dependencies import create_access_token
+    from app.config import settings
+    
+    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    to_encode = {"exp": expires}
+    malformed_token = create_access_token(to_encode)
+
+    response = client.get(
+        "/api/v1/volunteers/me",
+        headers={"Authorization": f"Bearer {malformed_token}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Could not validate credentials"
+
+@pytest.mark.asyncio
+async def test_get_current_active_volunteer_not_found_in_db(client: TestClient, db_session: Session, mocker):
+    """
+    Tests get_current_active_volunteer when volunteer is not found in DB.
+    """
+    from datetime import timedelta, datetime, timezone
+    from app.dependencies import create_access_token
+    from app.config import settings
+    
+    non_existent_email = "non_existent_in_db@example.com"
+    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    to_encode = {"sub": non_existent_email, "exp": expires}
+    token_for_non_existent_user = create_access_token(to_encode)
+
+    mocker.patch('app.crud.crud_volunteer.get_volunteer_by_email', return_value=None)
+
+    response = client.get(
+        "/api/v1/volunteers/me",
+        headers={"Authorization": f"Bearer {token_for_non_existent_user}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Could not validate credentials"
+
+@pytest.mark.asyncio
+async def test_get_current_active_volunteer_inactive(client: TestClient, db_session: Session, mocker):
+    """
+    Tests get_current_active_volunteer when the volunteer is inactive.
+    """
+    from datetime import timedelta, datetime, timezone
+    from app.dependencies import create_access_token
+    from app.config import settings
+    from app.db.models import Volunteer
+    from app.utils.security import get_password_hash
+    
+    volunteer_email = "inactive_dependency@example.com"
+    db_volunteer = Volunteer(
+        name="Inactive Dep User",
+        email=volunteer_email,
+        password=get_password_hash("password"),
+        is_active=0
+    )
+    db_session.add(db_volunteer)
+    db_session.commit()
+    db_session.refresh(db_volunteer)
+
+    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    to_encode = {"sub": volunteer_email, "exp": expires}
+    token = create_access_token(to_encode)
+
+    mocker.patch('app.crud.crud_volunteer.get_volunteer_by_email', return_value=db_volunteer)
+
+    response = client.get(
+        "/api/v1/volunteers/me",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Inactive volunteer"

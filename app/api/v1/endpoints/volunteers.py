@@ -43,6 +43,14 @@ def read_volunteers(skip: int = 0, limit: int = 100, current_manager: Volunteer 
     return volunteers
 
 
+@router.get("/me", response_model=schemas.Volunteer)
+async def read_volunteers_me(current_volunteer: Volunteer = Depends(get_current_active_volunteer)):
+    """
+    Retrieves the current authenticated volunteer's profile.
+    """
+    return current_volunteer
+
+
 @router.get("/{volunteer_id}", response_model=schemas.Volunteer)
 def read_volunteer(volunteer_id: int, current_manager: Volunteer = Depends(get_current_manager), db: Session = Depends(get_db)):
     """
@@ -77,14 +85,6 @@ async def update_volunteer(
             detail="Volunteer not found or an unexpected error occurred during update.",
         )
     return db_volunteer
-
-
-@router.get("/me", response_model=schemas.Volunteer)
-async def read_volunteers_me(current_volunteer: Volunteer = Depends(get_current_active_volunteer)):
-    """
-    Retrieves the current authenticated volunteer's profile.
-    """
-    return current_volunteer
 
 
 @router.delete("/{volunteer_id}", status_code=status.HTTP_204_NO_CONTENT)
