@@ -68,7 +68,7 @@ async def test_create_need_authenticated_and_check_matching(client: TestClient, 
     )
 
     response = client.post(
-        "/api/v1/needs/",
+        "/api/v1/needs",
         json=need_data.model_dump(),
         headers={"Authorization": f"Bearer {owner_token}"}
     )
@@ -92,11 +92,11 @@ def test_create_need_unauthenticated(client: TestClient):
         contact_name="Anon",
         contact_email="anon@example.com"
     )
-    response = client.post("/api/v1/needs/", json=need_data.model_dump())
+    response = client.post("/api/v1/needs", json=need_data.model_dump())
     assert response.status_code == 401
 
 def test_read_needs_unauthenticated(client: TestClient):
-    response = client.get("/api/v1/needs/")
+    response = client.get("/api/v1/needs")
     assert response.status_code == 401
 
 def test_read_need_unauthenticated(client: TestClient):
@@ -134,7 +134,7 @@ async def test_read_needs_manager_access(client: TestClient, db_session: Session
     ), other_volunteer.id, mock_bg_tasks)
     
     # Manager should see all needs
-    response = client.get("/api/v1/needs/", headers={"Authorization": f"Bearer {owner_token}"})
+    response = client.get("/api/v1/needs", headers={"Authorization": f"Bearer {owner_token}"})
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 2
@@ -172,7 +172,7 @@ async def test_read_needs_volunteer_own_only(client: TestClient, db_session: Ses
     ), other_volunteer.id, mock_bg_tasks)
     
     # Volunteer should see only their own needs
-    response = client.get("/api/v1/needs/", headers={"Authorization": f"Bearer {owner_token}"})
+    response = client.get("/api/v1/needs", headers={"Authorization": f"Bearer {owner_token}"})
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1

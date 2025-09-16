@@ -95,7 +95,7 @@ async def test_read_volunteers_manager_only(client: TestClient, db_session: Sess
     await crud_volunteer.create_volunteer(db_session, volunteer1_data, mock_bg_tasks)
     await crud_volunteer.create_volunteer(db_session, volunteer2_data, mock_bg_tasks)
 
-    response = client.get("/api/v1/volunteers/", headers={"Authorization": f"Bearer {owner_token}"})
+    response = client.get("/api/v1/volunteers", headers={"Authorization": f"Bearer {owner_token}"})
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 3 
@@ -111,7 +111,7 @@ async def test_read_volunteers_non_manager_blocked(client: TestClient, db_sessio
     owner_volunteer.is_manager = 0
     db_session.commit()
 
-    response = client.get("/api/v1/volunteers/", headers={"Authorization": f"Bearer {owner_token}"})
+    response = client.get("/api/v1/volunteers", headers={"Authorization": f"Bearer {owner_token}"})
     assert response.status_code == 403
     assert response.json()["detail"] == "Manager access required"
 
