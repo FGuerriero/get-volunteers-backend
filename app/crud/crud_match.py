@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 """
 
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.db import models
@@ -14,7 +15,7 @@ def create_match(db: Session, volunteer_id: int, need_id: int, match_details: st
     Creates a new match record between a volunteer and a need.
     """
     db_match = models.VolunteerNeedMatch(
-        volunteer_id=volunteer_id, need_id=need_id, match_details=match_details
+        volunteer_id=volunteer_id, need_id=need_id, match_details=match_details, created_at=datetime.now(timezone.utc)
     )
     db.add(db_match)
     db.commit()

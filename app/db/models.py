@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 #
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -54,5 +54,6 @@ class VolunteerNeedMatch(Base):
     volunteer_id = Column(Integer, ForeignKey("volunteers.id"), nullable=False)
     need_id = Column(Integer, ForeignKey("needs.id"), nullable=False)
     match_details = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=True)
     volunteer = relationship("Volunteer", back_populates="volunteer_matches")
     need = relationship("Need", back_populates="need_matches")
