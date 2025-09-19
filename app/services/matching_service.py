@@ -20,28 +20,24 @@ class MatchingService:
     _SYSTEM_INSTRUCTION = """
     You are an expert volunteer matching specialist. Your primary goal is to analyze profiles and needs, and
     identify the best fits. Always adhere to the specified JSON output format.
+    
+    CRITICAL MATCHING RULES:
+    - ONLY create matches when there is a CLEAR, POSITIVE alignment between volunteer and need
+    - NEVER create matches for volunteers with insufficient information (skills, interests, or about me)
+    - NEVER create negative matches or mention lack of information
+    - If no good matches exist, return an empty array []
+    - Quality over Quantity: Only suggest truly good fits - better to have no matches than poor matches
+    
+    MATCHING CRITERIA (ALL must be met):
+    1. Skills Fit: Volunteer must have specific skills that directly match or are highly relevant to the need's requirements
+    2. Interests Fit: Volunteer's interests must clearly align with the nature of the need
+    3. About Me Relevance: Information in 'About Me' must indicate genuine suitability (if provided)
     """
 
-    # Common user-facing prompt instructions, including criteria and examples
+    # Output format and examples for prompts
     _COMMON_PROMPT_INSTRUCTIONS = """
-    **Matching Criteria:**
-    1.  **Skills Fit:** Volunteers whose skills directly match or are highly relevant to the 'Required Skills
-        for Need' or are strongly implied by the 'Need Description'. Needs whose 'Required Skills' directly
-        match or are highly relevant to the volunteer's 'Skills'.
-    2.  **Interests Fit:** Volunteers whose 'Volunteer Interests' align with the nature of the 'Need'. Needs
-        whose nature aligns with the volunteer's 'Volunteer Interests'.
-    3.  **About Me Relevance:** Any information in the 'About Me' field that indicates a strong suitability
-        for the need/volunteer.
-    4.  **Prioritize best fits:** It's not necessary to fulfill the 'Number of volunteers needed' completely
-        if there aren't enough truly good fits. Focus on quality over quantity.
-
     **Output Format:**
-    Provide a JSON array of objects. Each object should represent a good match and contain the following
-    fields:
-    -   `volunteer_id` (when matching needs to volunteers) or `need_id` (when matching volunteers to needs):
-        The integer ID of the matched entity.
-    -   `match_details`: A string explaining *why* this volunteer/need is a good fit, specifically mentioning
-        how their skills, interests, or 'about me' section align.
+    JSON array with `volunteer_id`/`need_id` and `match_details` explaining why it's a strong fit.
 
     Example Output for Need Analysis (matching a need to volunteers):
     ```json
