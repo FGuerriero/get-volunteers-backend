@@ -60,6 +60,26 @@ def delete_matches_for_volunteer(db: Session, volunteer_id: int):
     return True
 
 
+def get_matched_need_ids_for_volunteer(db: Session, volunteer_id: int):
+    """
+    Returns a set of need IDs that the volunteer is already matched to.
+    """
+    matches = db.query(models.VolunteerNeedMatch.need_id).filter(
+        models.VolunteerNeedMatch.volunteer_id == volunteer_id
+    ).all()
+    return {match.need_id for match in matches}
+
+
+def get_matched_volunteer_ids_for_need(db: Session, need_id: int):
+    """
+    Returns a set of volunteer IDs that are already matched to the need.
+    """
+    matches = db.query(models.VolunteerNeedMatch.volunteer_id).filter(
+        models.VolunteerNeedMatch.need_id == need_id
+    ).all()
+    return {match.volunteer_id for match in matches}
+
+
 def delete_all_matches(db: Session):
     """
     Deletes all match records from the database.

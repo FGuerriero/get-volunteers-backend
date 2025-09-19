@@ -16,7 +16,7 @@ async def test_create_need_authenticated_and_check_matching(client: TestClient, 
     mock_matching_service_class = mocker.patch('app.services.matching_service.MatchingService')
     mock_matching_service_instance = mock_matching_service_class.return_value
     mock_matching_service_instance.reanalyze_all_matches.side_effect = MagicMock()
-    mock_matching_service_instance.analyze_and_match.side_effect = MagicMock()
+    mock_matching_service_instance.analyze_need_against_all_volunteers.side_effect = MagicMock()
 
     mock_trigger_volunteer_matching = mocker.patch('app.background_tasks.match_handlers.trigger_volunteer_matching')
     mock_trigger_volunteer_matching.side_effect = MagicMock()

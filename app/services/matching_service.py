@@ -109,22 +109,26 @@ class MatchingService:
             print(f"Error calling Gemini API: {e}")
             return None
 
-    async def analyze_and_match(self, need: models.Need, all_volunteers: List[models.Volunteer]):
+    async def analyze_need_against_all_volunteers(self, need: models.Need, all_volunteers: List[models.Volunteer]):
         """
-        Analyzes a specific need against all available volunteers using Gemini
+        Analyzes a specific need against all unmatched volunteers using Gemini
         and stores the matching results. This is typically called when a need is created or updated.
         """
-        crud_match.delete_matches_for_need(self.db, need.id)
-
-        if not all_volunteers:
-            print(f"No volunteers available to match for Need ID {need.id}")
+        # Get volunteers already matched to this need
+        matched_volunteer_ids = crud_match.get_matched_volunteer_ids_for_need(self.db, need.id)
+        
+        # Filter out volunteers that are already matched
+        unmatched_volunteers = [v for v in all_volunteers if v.id not in matched_volunteer_ids]
+        
+        if not unmatched_volunteers:
+            print(f"No unmatched volunteers available to match for Need ID {need.id}")
             return
 
         volunteer_info = "\n".join(
             [
                 f"""- ID: {v.id}, Name: {v.name}, Email: {v.email}, Skills: {v.skills or 'None'},
             About: {v.about_me or 'None'}, Interests: {v.volunteer_interests or 'None'}"""
-                for v in all_volunteers
+                for v in unmatched_volunteers
             ]
         )
 
@@ -178,20 +182,24 @@ class MatchingService:
         self, volunteer: models.Volunteer, all_needs: List[models.Need]
     ):
         """
-        Analyzes a specific volunteer against all available needs using Gemini
+        Analyzes a specific volunteer against all unmatched needs using Gemini
         and updates match results. This is typically called when a volunteer is created or updated.
         """
-        crud_match.delete_matches_for_volunteer(self.db, volunteer.id)
-
-        if not all_needs:
-            print(f"No needs available to match for Volunteer ID {volunteer.id}")
+        # Get needs this volunteer is already matched to
+        matched_need_ids = crud_match.get_matched_need_ids_for_volunteer(self.db, volunteer.id)
+        
+        # Filter out needs that are already matched
+        unmatched_needs = [n for n in all_needs if n.id not in matched_need_ids]
+        
+        if not unmatched_needs:
+            print(f"No unmatched needs available to match for Volunteer ID {volunteer.id}")
             return
 
         need_info = "\n".join(
             [
                 f"""- ID: {n.id}, Title: {n.title}, Description: {n.description}, Required Skills:
                   {n.required_skills or 'None'}"""
-                for n in all_needs
+                for n in unmatched_needs
             ]
         )
 

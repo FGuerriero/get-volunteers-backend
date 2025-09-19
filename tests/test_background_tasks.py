@@ -35,14 +35,14 @@ async def test_trigger_volunteer_matching_volunteer_not_found(db_session: Sessio
 
 @pytest.mark.asyncio
 async def test_matching_service_no_volunteers(db_session: Session, mocker, capsys):
-    """Test analyze_and_match when no volunteers available"""
+    """Test analyze_need_against_all_volunteers when no volunteers available"""
     from app.services.matching_service import MatchingService
     from app.db.models import Need
     
     need = Need(id=1, title="Test", description="Test", num_volunteers_needed=1)
     service = MatchingService(db_session)
     
-    await service.analyze_and_match(need, [])
+    await service.analyze_need_against_all_volunteers(need, [])
     
     captured = capsys.readouterr()
     assert "No volunteers available to match for Need ID 1" in captured.out

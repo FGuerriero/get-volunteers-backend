@@ -22,7 +22,7 @@ async def trigger_need_matching(need_id: int):
         if need:
             matching_service = MatchingService(db)
             all_volunteers = crud_volunteer.get_volunteers(db)
-            await matching_service.analyze_and_match(need, all_volunteers)
+            await matching_service.analyze_need_against_all_volunteers(need, all_volunteers)
         else:
             print(f"Background Task Warning: Need with ID {need_id} not found for matching.")
     finally:

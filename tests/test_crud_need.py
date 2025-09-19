@@ -256,18 +256,18 @@ async def test_trigger_need_matching_need_not_found(db_session: Session, mocker,
     mocker.patch('app.crud.crud_need.get_need', return_value=None)
     mocker.patch('app.crud.crud_volunteer.get_volunteers', return_value=[])
 
-    mock_analyze_and_match = mocker.patch('app.services.matching_service.MatchingService.analyze_and_match')
+    mock_analyze_need_against_all_volunteers = mocker.patch('app.services.matching_service.MatchingService.analyze_need_against_all_volunteers')
 
     await match_handlers.trigger_need_matching(99999)
 
     captured = capsys.readouterr()
     assert "Background Task Warning: Need with ID 99999 not found for matching." in captured.out
-    mock_analyze_and_match.assert_not_called()
+    mock_analyze_need_against_all_volunteers.assert_not_called()
 
 @pytest.mark.asyncio
-async def test_analyze_and_match_no_volunteers(db_session: Session, mocker, capsys):
+async def test_analyze_need_against_all_volunteers_no_volunteers(db_session: Session, mocker, capsys):
     """
-    Tests analyze_and_match when no volunteers are available.
+    Tests analyze_need_against_all_volunteers when no volunteers are available.
     Covers app/services/matching_service.py lines 118-119.
     """
     owner_volunteer = create_dummy_volunteer(db_session, email="owner_for_no_vol_test@example.com")
@@ -279,7 +279,7 @@ async def test_analyze_and_match_no_volunteers(db_session: Session, mocker, caps
     mock_call_gemini_api = mocker.patch('app.services.matching_service.MatchingService._call_gemini_api')
     
     matching_service = MatchingService(db_session)
-    await matching_service.analyze_and_match(need, [])
+    await matching_service.analyze_need_against_all_volunteers(need, [])
 
     captured = capsys.readouterr()
     assert f"No volunteers available to match for Need ID {need.id}" in captured.out
@@ -287,9 +287,9 @@ async def test_analyze_and_match_no_volunteers(db_session: Session, mocker, caps
     assert not crud_match.get_matches_for_need(db_session, need.id)
 
 @pytest.mark.asyncio
-async def test_analyze_and_match_gemini_suggests_non_existent_volunteer(db_session: Session, mocker, capsys):
+async def test_analyze_need_against_all_volunteers_gemini_suggests_non_existent_volunteer(db_session: Session, mocker, capsys):
     """
-    Tests analyze_and_match when Gemini suggests a non-existent volunteer ID.
+    Tests analyze_need_against_all_volunteers when Gemini suggests a non-existent volunteer ID.
     Covers app/services/matching_service.py lines 165-168.
     """
     owner_volunteer = create_dummy_volunteer(db_session, email="owner_for_non_existent_vol_test@example.com")
@@ -313,7 +313,7 @@ async def test_analyze_and_match_gemini_suggests_non_existent_volunteer(db_sessi
 
     from app.services.matching_service import MatchingService
     matching_service = MatchingService(db_session)
-    await matching_service.analyze_and_match(need, [existing_volunteer])
+    await matching_service.analyze_need_against_all_volunteers(need, [existing_volunteer])
 
     captured = capsys.readouterr()
     normalized_output = ' '.join(captured.out.split()).strip()
@@ -325,9 +325,9 @@ async def test_analyze_and_match_gemini_suggests_non_existent_volunteer(db_sessi
     assert matches[0].volunteer_id == existing_volunteer.id
 
 @pytest.mark.asyncio
-async def test_analyze_and_match_gemini_invalid_data_format(db_session: Session, mocker, capsys):
+async def test_analyze_need_against_all_volunteers_gemini_invalid_data_format(db_session: Session, mocker, capsys):
     """
-    Tests analyze_and_match when Gemini returns invalid match data format.
+    Tests analyze_need_against_all_volunteers when Gemini returns invalid match data format.
     Covers app/services/matching_service.py lines 169-172 (implicitly via invalid format check).
     """
     owner_volunteer = create_dummy_volunteer(db_session, email="owner_for_invalid_format_test@example.com")
@@ -344,7 +344,7 @@ async def test_analyze_and_match_gemini_invalid_data_format(db_session: Session,
     mocker.patch('app.services.matching_service.MatchingService._call_gemini_api', new_callable=AsyncMock, return_value=mock_gemini_response)
     
     matching_service = MatchingService(db_session)
-    await matching_service.analyze_and_match(need, [existing_volunteer])
+    await matching_service.analyze_need_against_all_volunteers(need, [existing_volunteer])
 
     captured = capsys.readouterr()
     assert f"Warning: Gemini returned invalid match data format for Need ID {need.id}:" in captured.out
@@ -413,9 +413,9 @@ async def test_delete_need_manager_access(db_session: Session, mocker):
     assert crud_need.get_need(db_session, created_need.id) is None
 
 @pytest.mark.asyncio
-async def test_analyze_and_match_gemini_no_valid_matches(db_session: Session, mocker, capsys):
+async def test_analyze_need_against_all_volunteers_gemini_no_valid_matches(db_session: Session, mocker, capsys):
     """
-    Tests analyze_and_match when Gemini returns no valid matches or None.
+    Tests analyze_need_against_all_volunteers when Gemini returns no valid matches or None.
     Covers app/services/matching_service.py lines 173-174 (implicitly via no matches created).
     """
     owner_volunteer = create_dummy_volunteer(db_session, email="owner_for_no_valid_matches_test@example.com")
@@ -427,7 +427,7 @@ async def test_analyze_and_match_gemini_no_valid_matches(db_session: Session, mo
     mocker.patch('app.services.matching_service.MatchingService._call_gemini_api', new_callable=AsyncMock, return_value=[])
     
     matching_service = MatchingService(db_session)
-    await matching_service.analyze_and_match(need, [existing_volunteer])
+    await matching_service.analyze_need_against_all_volunteers(need, [existing_volunteer])
 
     captured = capsys.readouterr()
     assert f"Gemini did not return valid matches for Need ID {need.id}" in captured.out
